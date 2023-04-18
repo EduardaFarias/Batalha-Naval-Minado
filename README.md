@@ -13,9 +13,9 @@ Este projeto é um jogo de batalha naval com um adicional de campo minado. Nesse
 
 [Acesse aqui para saber mais](https://docs.google.com/document/d/1ea-AV-QI9XDrPBfTsM2Qdy2xajnzhF1-gGaIO84EY0Y/edit?usp=sharing)
 
-> #### MEMBROS: 
-
 <br>
+
+> #### MEMBROS: 
 
 ###### Maria Eduarda Batista de Farias 
 ###### Iasmim Maria Freire da Silva Torres
