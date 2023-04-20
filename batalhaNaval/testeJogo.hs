@@ -102,6 +102,8 @@ cadastrarJogador dados = do
                             nome <- getLine
                             if(existeJogador dados nome) then do
                               putStrLn "\nEsse nome já existe, escolha outro."
+                              putStrLn ("\nPressione <Enter> para continuar...")
+                              getChar
                               cadastrarJogador dados
                             else do
                               arq <- openFile "dados.txt" WriteMode
@@ -120,7 +122,10 @@ getString str = do
                   return res
 
 existeJogador :: Jogadores -> String -> Bool
-existeJogador dados nome = False
+existeJogador [] _ = False
+existeJogador ((Jogador nomeCadastrado pontuacao):xs) nome
+                | (nomeCadastrado == nome) = True
+                | otherwise = existeJogador xs nome
 
 prepararJogo :: Jogadores -> IO Jogadores
 prepararJogo dados = do
