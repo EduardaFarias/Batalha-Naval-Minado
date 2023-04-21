@@ -3,7 +3,7 @@
 
 > #### DO QUE SE TRATA
 
-Esse repositório é dedicado ao projeto da disciplina de Paradigmas de Linguagens de Programação (PLP). Esse projeto séra apresentado em duas linguagens: Haskell (Funcional) e Prolog (Lógica).
+Esse repositório é dedicado ao projeto da disciplina de Paradigmas de Linguagens de Programação (PLP). Esse projeto será apresentado em duas linguagens: Haskell (Funcional) e Prolog (Lógica).
 
 <br>
 
@@ -17,11 +17,11 @@ Este projeto é um jogo de batalha naval com um adicional de campo minado. Nesse
 
 > #### MEMBROS: 
 
-###### Maria Eduarda Batista de Farias 
-###### Iasmim Maria Freire da Silva Torres
-###### Felipe da Silva Gangorra
-###### Rayane Bezerra da Silva
-###### Thayane Stheffany Silva Barros
+- Maria Eduarda Batista de Farias 
+- Iasmim Maria Freire da Silva Torres
+- Felipe da Silva Gangorra
+- Rayane Bezerra da Silva
+- Thayane Stheffany Silva Barros
 
 
 
