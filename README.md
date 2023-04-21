@@ -23,5 +23,4 @@ Este projeto é um jogo de batalha naval com um adicional de campo minado. Nesse
 - Rayane Bezerra da Silva
 - Thayane Stheffany Silva Barros
 
-TESTANDO
 
