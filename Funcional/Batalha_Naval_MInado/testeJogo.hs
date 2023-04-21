@@ -22,14 +22,14 @@ main = do
           where
             ler_arquivo = do
             {
-              arq <- openFile "dados.txt" ReadMode;
+              arq <- openFile "./text/dados.txt" ReadMode;
               dados <- hGetLine arq;
               hClose arq;
               inicio_apresentacao (read dados);
             }
             tratar_error erro = if isDoesNotExistError erro then do
             {
-              arq <- openFile "dados.txt" WriteMode;
+              arq <- openFile "./text/dados.txt" WriteMode;
               hPutStrLn arq "[]";
               hClose arq;
               inicio_apresentacao []
@@ -40,7 +40,7 @@ main = do
 -- Função que apresenta uma história introduzindo ao jogo e chama o menu
 inicio_apresentacao :: [Jogador] -> IO()
 inicio_apresentacao dados = do
-                  --imprimiIntroducao
+                  imprimiIntroducao
                   putStrLn ("\nPressione <Enter> para continuar")
                   getChar
                   menu dados;
@@ -51,7 +51,7 @@ imprimiIntroducao :: IO ()
 imprimiIntroducao = do
                       hSetBuffering stdout NoBuffering -- disable output buffering
                       system "clear" -- limpa a tela
-                      handle <- openFile "texto.txt" ReadMode
+                      handle <- openFile "./text/introducao.txt" ReadMode
                       imprimiTextoLentamente handle
                       hClose handle
 
@@ -111,7 +111,7 @@ cadastrarJogador dados = do
                               getChar
                               cadastrarJogador dados
                             else do
-                              arq <- openFile "dados.txt" WriteMode
+                              arq <- openFile "./text/dados.txt" WriteMode
                               hPutStrLn arq(show ((Jogador nome 0):dados))
                               hClose arq
                               putStrLn ("\nUsuário " ++ nome ++ " cadastrado com sucesso!")
