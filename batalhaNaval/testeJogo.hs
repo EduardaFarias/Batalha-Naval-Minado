@@ -5,6 +5,8 @@ import System.IO.Error
 import System.Process
 import Data.List
 
+import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
+
 -- definição dos tipos de dados
 type Jogadores = [Jogador]
 type Nome = String
@@ -15,7 +17,7 @@ data Jogador = Jogador Nome Pontuacao
 
 -- função que inicia o programa
 main :: IO ()
-main = do   
+main = do
           {catch (ler_arquivo) tratar_error;}
           where
             ler_arquivo = do
@@ -47,6 +49,7 @@ inicio_apresentacao dados = do
 -- função que irá imprimir a introdução do jogo
 imprimiIntroducao :: IO ()
 imprimiIntroducao = do
+                      hSetBuffering stdout NoBuffering -- disable output buffering
                       system "clear" -- limpa a tela
                       handle <- openFile "texto.txt" ReadMode
                       imprimiTextoLentamente handle
@@ -61,7 +64,7 @@ imprimiTextoLentamenteAux :: String -> IO ()
 imprimiTextoLentamenteAux [] = return ()
 imprimiTextoLentamenteAux (x:xs) = do
   putStr [x]
-  threadDelay 50000 -- intervalo de 50 milissegundos
+  Control.Concurrent.threadDelay 50000
   imprimiTextoLentamenteAux xs
 
 
@@ -72,6 +75,7 @@ menu dados = do
                 putStrLn "-------------------- Batalha Naval --------------------"
                 putStrLn "\n ● Digite 1 para cadastrar jogador"
                 putStrLn "\n ● Digite 2 para jogar"
+                putStrLn "\n ● Digite 3 para ver o modo história"
                 putStrLn "\n ● Digite 0 para sair "
                 putStr "\n→ Opção: \n\n"
                 op <- getChar
@@ -82,11 +86,12 @@ menu dados = do
 -- função para manipular a opção escolhida pelo usuário
 executarOpcao :: Jogadores -> Char -> IO Jogadores
 executarOpcao dados '0' = do
-                            putStr("\n A água esquece o nome dos afogados...\n")
+                            putStr("\nA água esquece o nome dos afogados...\n")
                             return dados
 
 executarOpcao dados '1' = cadastrarJogador dados
 executarOpcao dados '2' = prepararJogo dados
+executarOpcao dados '3' = menu dados
 executarOpcao dados _ = do
                           putStrLn ("\nOpção inválida! Tente novamente...")
                           putStrLn ("\nPressione <Enter> para voltar ao menu")
