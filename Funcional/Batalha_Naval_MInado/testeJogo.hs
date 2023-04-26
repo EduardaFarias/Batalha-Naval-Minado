@@ -4,6 +4,7 @@ import System.IO
 import System.IO.Error
 import System.Process
 import Data.List
+import System.Random
 
 import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
 
@@ -12,6 +13,7 @@ type Jogadores = [Jogador]
 type Nome = String
 type Pontuacao = Int
 type Vez = Int
+type Tabuleiro = [[Char]]
 data Jogador = Jogador Nome Pontuacao
                     deriving (Show, Read)
 
@@ -40,7 +42,7 @@ main = do
 -- Função que apresenta uma história introduzindo ao jogo e chama o menu
 inicio_apresentacao :: [Jogador] -> IO()
 inicio_apresentacao dados = do
-                  imprimiIntroducao
+                 -- imprimiIntroducao
                   putStrLn ("\nPressione <Enter> para continuar")
                   getChar
                   menu dados;
@@ -142,10 +144,96 @@ prepararJogo dados = do
                       putStrLn "\n • Digite 0 para voltar ao menu"
                       putStr "\n→ Opção: \n\n"
                       op <- getChar
+                      getChar
                       executarOpcaoJogo dados op
 
 executarOpcaoJogo :: Jogadores -> Char -> IO Jogadores
 executarOpcaoJogo dados '0' = menu dados
-executarOpcaoJogo dados '1' = menu dados 
+executarOpcaoJogo dados '1' = doWhile True executaJogoComMaquina dados
+
 executarOpcaoJogo dados '2' = menu dados
 executarOpcaoJogo dados '3' = menu dados
+
+-- executa um loop do jogo
+doWhile :: Bool -> (function -> IO Jogadores) -> Jogadores -> IO Jogadores
+doWhile condition function dados
+  | condition = do 
+                system "clear"
+                let tabuleiro = criaMatriz 10
+                iniciaTabuleiro tabuleiro 10 0
+                tabuleiro2 <- configuraNavios 3 10 tabuleiro
+                putStr (concat tabuleiro2)
+                putStrLn "\nVocê quer jogar novamente? [1 para sim, outro número para sair]"
+                putStr "\n→ Opção: \n\n"
+                op <- getChar
+                getChar
+                if(op == '1') then doWhile True executaJogoComMaquina dados
+                else doWhile False executaJogoComMaquina dados
+  | otherwise = menu dados
+
+
+-- função para criar a matriz com um tamnho determinado pelo usuário ou com tamanho 10 caso o usuário não redefina o tamanho do tabuleiro
+criaMatriz :: Int -> [[Char]]
+criaMatriz n = replicate n (intercalate " " (replicate (n) "."))
+
+-- função para inicializar o tabuleiro
+iniciaTabuleiro :: [[Char]] -> Int -> Int -> IO ()
+iniciaTabuleiro matriz 0 i = do
+                              putStrLn $ replicate 3 ' ' ++ replicate (i*2) '-' 
+                              putStrLn $ replicate 3 ' ' ++ unwords (map show [0..(i-1)])
+iniciaTabuleiro matriz n i = do
+                          putStr $ (show i) ++ replicate 1 ' '
+                          (\linha -> putStrLn $ "|" ++ linha ++ "|") (matriz !! (i))
+                          iniciaTabuleiro matriz (n-1) (i+1)
+
+configuraNavios :: Int -> Int -> [[Char]] -> IO [[Char]]
+configuraNavios 0 _ tabuleiro = return tabuleiro
+configuraNavios n i tabuleiro = do
+                    gen <- newStdGen
+                    let (posI, _) = randomR (0, (i-1)) gen
+                    let (posJ, _) = randomR (0, (i-1)) gen
+                    if (not (temNavioNaColuna posI posJ tabuleiro) || not (temNavioNaLinha posI posJ tabuleiro)) then do
+                                                                    novoTabuleiro <- insereNavio posI posJ tabuleiro
+                                                                    configuraNavios (n-1) i novoTabuleiro
+                    else configuraNavios n i tabuleiro
+                       
+
+insereNavio :: Int -> Int -> [[Char]] -> IO [[Char]]
+insereNavio posI posJ tabuleiro
+                    | (posI + 3) < 10 = if not (temNavioNaColuna posI posJ tabuleiro) then adicionaNavioNaColuna posI posJ tabuleiro 3
+                                         else return tabuleiro
+                    | (posJ + 3) < 10 = if not (temNavioNaLinha posI posJ tabuleiro) then adicionaNavioNaLinha posI posJ tabuleiro 3
+                                         else return tabuleiro
+                    | otherwise = return tabuleiro
+
+
+temNavioNaColuna :: Int -> Int -> [[Char]] -> Bool
+temNavioNaColuna posI posJ tabuleiro = tabuleiro !! posI !! posJ == '#' ||
+                                       tabuleiro !! (posI + 1) !! posJ == '#' ||
+                                       tabuleiro !! (posI + 2) !! posJ == '#'
+
+temNavioNaLinha :: Int -> Int -> [[Char]] -> Bool
+temNavioNaLinha posI posJ tabuleiro = tabuleiro !! posI !! posJ == '#' ||
+                                      tabuleiro !! posI !! (posJ + 1) == '#' ||
+                                      tabuleiro !! posI !! (posJ + 2) == '#'
+
+adicionaNavioNaColuna :: Int -> Int -> [[Char]] -> Int -> IO [[Char]]
+adicionaNavioNaColuna _ _ [] _ = return []
+adicionaNavioNaColuna _ _ l 0 = return l
+adicionaNavioNaColuna posI posJ (x:xs) n
+                                    | x == show posI = do
+                                          navio <- adicionaNavio ([x !! posJ])
+                                          restante <- adicionaNavioNaColuna (posI + 1) posJ xs (n-1)
+                                          return (navio : restante)
+                                    | otherwise = do
+                                          restante <- adicionaNavioNaColuna posI posJ xs n
+                                          return (x : restante)
+
+adicionaNavio :: [Char] ->  IO [Char]
+adicionaNavio [x] = return ['#']
+
+adicionaNavioNaLinha :: Int -> Int -> [[Char]] -> Int -> IO [[Char]]
+adicionaNavioNaLinha posI posJ tabuleiro n = return tabuleiro
+
+executaJogoComMaquina :: Jogadores -> IO Jogadores
+executaJogoComMaquina dados = menu dados
