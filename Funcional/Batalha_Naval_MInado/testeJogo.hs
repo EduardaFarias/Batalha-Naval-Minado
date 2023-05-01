@@ -162,7 +162,7 @@ doWhile condition function dados
                 let tabuleiro = criaMatriz 10
                 iniciaTabuleiro tabuleiro 10 0
                 tabuleiro2 <- configuraNavios 3 10 tabuleiro
-                putStr (concat tabuleiro2)
+                iniciaTabuleiro tabuleiro2 10 0
                 putStrLn "\nVocê quer jogar novamente? [1 para sim, outro número para sair]"
                 putStr "\n→ Opção: \n\n"
                 op <- getChar
@@ -208,12 +208,16 @@ insereNavio posI posJ tabuleiro
 
 
 temNavioNaColuna :: Int -> Int -> [[Char]] -> Bool
-temNavioNaColuna posI posJ tabuleiro = tabuleiro !! posI !! posJ == '#' ||
+temNavioNaColuna posI posJ tabuleiro
+    | (posI + 2 >= length tabuleiro) || (posJ + 2 >= length (tabuleiro !! posI)) = False
+    | otherwise = tabuleiro !! posI !! posJ == '#' ||
                                        tabuleiro !! (posI + 1) !! posJ == '#' ||
                                        tabuleiro !! (posI + 2) !! posJ == '#'
 
 temNavioNaLinha :: Int -> Int -> [[Char]] -> Bool
-temNavioNaLinha posI posJ tabuleiro = tabuleiro !! posI !! posJ == '#' ||
+temNavioNaLinha posI posJ tabuleiro
+    | posJ + 2 >= length (tabuleiro !! posI) || (posI + 2 >= length tabuleiro) = False
+    | otherwise = tabuleiro !! posI !! posJ == '#' ||
                                       tabuleiro !! posI !! (posJ + 1) == '#' ||
                                       tabuleiro !! posI !! (posJ + 2) == '#'
 
