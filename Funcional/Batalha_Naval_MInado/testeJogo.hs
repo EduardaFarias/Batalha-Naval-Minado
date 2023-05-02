@@ -159,10 +159,15 @@ doWhile :: Bool -> (function -> IO Jogadores) -> Jogadores -> IO Jogadores
 doWhile condition function dados
   | condition = do 
                 system "clear"
-                let tabuleiro = criaMatriz 10
-                iniciaTabuleiro tabuleiro 10 0
-                tabuleiro2 <- configuraNavios 3 10 tabuleiro
-                iniciaTabuleiro tabuleiro2 10 0
+                tabuleiro_Jogador <- criaMatriz 10
+                tabuleiro_Bot <- criaMatrizBot 10
+
+                putStr $ unlines tabuleiro_Bot
+
+
+               -- iniciaTabuleiro tabuleiro_Jogador 10 0
+              --  tabuleiro2 <- configuraNavios 3 10 tabuleiro_Jogador
+              --  iniciaTabuleiro tabuleiro2 10 0
                 putStrLn "\nVocê quer jogar novamente? [1 para sim, outro número para sair]"
                 putStr "\n→ Opção: \n\n"
                 op <- getChar
@@ -173,71 +178,57 @@ doWhile condition function dados
 
 
 -- função para criar a matriz com um tamnho determinado pelo usuário ou com tamanho 10 caso o usuário não redefina o tamanho do tabuleiro
-criaMatriz :: Int -> [[Char]]
-criaMatriz n = replicate n (intercalate " " (replicate (n) "."))
+criaMatriz :: Int -> IO [[Char]]
+criaMatriz n = return $ replicate n (intercalate "" (replicate (n) "."))
 
--- função para inicializar o tabuleiro
-iniciaTabuleiro :: [[Char]] -> Int -> Int -> IO ()
-iniciaTabuleiro matriz 0 i = do
-                              putStrLn $ replicate 3 ' ' ++ replicate (i*2) '-' 
-                              putStrLn $ replicate 3 ' ' ++ unwords (map show [0..(i-1)])
-iniciaTabuleiro matriz n i = do
-                          putStr $ (show i) ++ replicate 1 ' '
-                          (\linha -> putStrLn $ "|" ++ linha ++ "|") (matriz !! (i))
-                          iniciaTabuleiro matriz (n-1) (i+1)
+criaMatrizBot :: Int -> IO [[Char]]
+criaMatrizBot n = do
+                  tabuleiro_Bot <- return $ replicate n (intercalate "" (replicate (n) "."))
+                  adicionaNavioNoBot tabuleiro_Bot 5 n -- O tamanho do navio começa com 5
 
-configuraNavios :: Int -> Int -> [[Char]] -> IO [[Char]]
-configuraNavios 0 _ tabuleiro = return tabuleiro
-configuraNavios n i tabuleiro = do
-                    gen <- newStdGen
-                    let (posI, _) = randomR (0, (i-1)) gen
-                    let (posJ, _) = randomR (0, (i-1)) gen
-                    if (not (temNavioNaColuna posI posJ tabuleiro) || not (temNavioNaLinha posI posJ tabuleiro)) then do
-                                                                    novoTabuleiro <- insereNavio posI posJ tabuleiro
-                                                                    configuraNavios (n-1) i novoTabuleiro
-                    else configuraNavios n i tabuleiro
-                       
+adicionaNavioNoBot :: [String] -> Int -> Int -> IO [String]
+adicionaNavioNoBot tabuleiro 1 _ = return tabuleiro
+adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro = do
+                  gen <- newStdGen
+                  let (posI, _) = randomR (0, (tamTabuleiro-1)) gen
+                  let (posJ, _) = randomR (0, (tamTabuleiro-1)) gen
+                  let (orientacao, _) = randomR (0, 1) gen :: (Int, StdGen)
 
-insereNavio :: Int -> Int -> [[Char]] -> IO [[Char]]
-insereNavio posI posJ tabuleiro
-                    | (posI + 3) < 10 = if not (temNavioNaColuna posI posJ tabuleiro) then adicionaNavioNaColuna posI posJ tabuleiro 3
-                                         else return tabuleiro
-                    | (posJ + 3) < 10 = if not (temNavioNaLinha posI posJ tabuleiro) then adicionaNavioNaLinha posI posJ tabuleiro 3
-                                         else return tabuleiro
-                    | otherwise = return tabuleiro
+                  if orientacao == 0 then
+                    if ((posI + tamNavio <= 10) && (verificaTemNavioNaLinha tabuleiro posI posJ tamNavio)) then do
+                        tab <- adicionaNavio tabuleiro posI posJ tamNavio
+                        adicionaNavioNoBot tab (tamNavio-1) tamTabuleiro
+                    else
+                      adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro
+                  else
+                      if ((posJ + tamNavio <= 10) && (verificaTemNavioNaLinha (transpose tabuleiro) posI posJ tamNavio)) then do
+                          tab <- fmap transpose (adicionaNavio (transpose tabuleiro) posJ posI tamNavio)
+                          adicionaNavioNoBot tab (tamNavio-1) tamTabuleiro
+                      else
+                          adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro
 
 
-temNavioNaColuna :: Int -> Int -> [[Char]] -> Bool
-temNavioNaColuna posI posJ tabuleiro
-    | (posI + 2 >= length tabuleiro) || (posJ + 2 >= length (tabuleiro !! posI)) = False
-    | otherwise = tabuleiro !! posI !! posJ == '#' ||
-                                       tabuleiro !! (posI + 1) !! posJ == '#' ||
-                                       tabuleiro !! (posI + 2) !! posJ == '#'
+adicionaNavio :: [[Char]] -> Int -> Int -> Int -> IO [[Char]]
+adicionaNavio tabuleiro posI posJ tamNavio = return (adicionaNavioNaLinha tabuleiro tamNavio posI posJ)
 
-temNavioNaLinha :: Int -> Int -> [[Char]] -> Bool
-temNavioNaLinha posI posJ tabuleiro
-    | posJ + 2 >= length (tabuleiro !! posI) || (posI + 2 >= length tabuleiro) = False
-    | otherwise = tabuleiro !! posI !! posJ == '#' ||
-                                      tabuleiro !! posI !! (posJ + 1) == '#' ||
-                                      tabuleiro !! posI !! (posJ + 2) == '#'
 
-adicionaNavioNaColuna :: Int -> Int -> [[Char]] -> Int -> IO [[Char]]
-adicionaNavioNaColuna _ _ [] _ = return []
-adicionaNavioNaColuna _ _ l 0 = return l
-adicionaNavioNaColuna posI posJ (x:xs) n
-                                    | x == show posI = do
-                                          navio <- adicionaNavio ([x !! posJ])
-                                          restante <- adicionaNavioNaColuna (posI + 1) posJ xs (n-1)
-                                          return (navio : restante)
-                                    | otherwise = do
-                                          restante <- adicionaNavioNaColuna posI posJ xs n
-                                          return (x : restante)
 
-adicionaNavio :: [Char] ->  IO [Char]
-adicionaNavio [x] = return ['#']
+adicionaNavioNaLinha :: [[Char]] -> Int -> Int -> Int -> [[Char]]
+adicionaNavioNaLinha (h:t) tamNavio posI posJ
+    | posI == 0 && t == [] = [take posJ h] ++ replicate (tamNavio) "#" ++ [drop (posJ + tamNavio) h]
+    | posI == 0 = ((take posJ h) ++ ['#' | _  <- [posJ..(posJ + tamNavio - 1)]] ++ (drop (posJ + tamNavio) h)) : t
+    | null t = [h]
+    | otherwise = h : adicionaNavioNaLinha t tamNavio (posI - 1) posJ
 
-adicionaNavioNaLinha :: Int -> Int -> [[Char]] -> Int -> IO [[Char]]
-adicionaNavioNaLinha posI posJ tabuleiro n = return tabuleiro
+
+verificaTemNavioNaLinha :: [[Char]] -> Int -> Int -> Int -> Bool
+verificaTemNavioNaLinha tabuleiro posI posJ tamNavio =
+    not (temNavio(take tamNavio (drop posJ (tabuleiro !! posI))))
+
+
+temNavio :: [Char] -> Bool
+temNavio tab = '#' `elem` tab
+
 
 executaJogoComMaquina :: Jogadores -> IO Jogadores
 executaJogoComMaquina dados = menu dados
