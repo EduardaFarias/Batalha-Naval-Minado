@@ -246,7 +246,7 @@ montaTabuleiroJogador :: [[Char]] -> Int -> Int -> IO [[Char]]
 montaTabuleiroJogador tabuleiro 1 _ = return tabuleiro
 montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro = do
                       system "clear"
-                      printaTabuleiro tabuleiro "Esse é o seu tabuleiro:"
+                      printaTabuleiro tabuleiro  tamTabuleiro "Esse é o seu tabuleiro:"
 
                       putStrLn ("\nO navio tem tamanho: " ++ show tamNavio)
                       orientacao <- pegaOrientacaoTabuleiro
@@ -278,19 +278,28 @@ montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro = do
                           putStrLn "O tamanho do navio esta fora dos limites, escolha outra posicao"
                           montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
 
-printaTabuleiro :: [[Char]] -> String -> IO()
-printaTabuleiro tabuleiro msg = do
-      putStrLn msg
-      putStrLn (preparaTabuleiroParaMensagem  tabuleiro 0)
+printaTabuleiro :: [[Char]] -> Int -> String -> IO()
+printaTabuleiro tabuleiro tam msg = do
+      putStrLn msg 
+      putStrLn (preparaTabuleiroParaMensagem  tabuleiro 0 tam)
 
-preparaTabuleiroParaMensagem :: [[Char]] -> Int -> String
-preparaTabuleiroParaMensagem [] i = ""
-preparaTabuleiroParaMensagem [[]] i = ""
-preparaTabuleiroParaMensagem tabuleiro 0 = "   1 2 3 4 5 6 7 8 9 10\n" ++ preparaTabuleiroParaMensagem tabuleiro 1
-preparaTabuleiroParaMensagem (h:t) 10 = show 10 ++ " " ++ intersperse ' ' (concat [h]) ++ "\n" 
-preparaTabuleiroParaMensagem (h:t) i = "" ++ show i ++ "  " ++ intersperse ' ' (concat [h]) ++ "\n" ++ preparaTabuleiroParaMensagem t (i+1)
+preparaTabuleiroParaMensagem :: [[Char]] -> Int ->  Int ->  String
+preparaTabuleiroParaMensagem [] i _ = ""
+preparaTabuleiroParaMensagem [[]] i _ = ""
+preparaTabuleiroParaMensagem tabuleiro 0 n = concatMap (\x -> show x ++ " ") [1..n] ++"\n" ++ preparaTabuleiroParaMensagem tabuleiro 1 n
+--preparaTabuleiroParaMensagem tabuleiro 0 = "   1 2 3 4 5 6 7 8 9 10\n" ++ preparaTabuleiroParaMensagem tabuleiro 1
+preparaTabuleiroParaMensagem (h:t) n 0 = show n ++ " " ++ intersperse ' ' (concat [h]) ++ "\n" 
+preparaTabuleiroParaMensagem (h:t) i n = "" ++ show i ++ "  " ++ intersperse ' ' (concat [h]) ++ "\n" ++ preparaTabuleiroParaMensagem t (i+1) n
  
-  
+--import Data.List (intersperse)
+
+--preparaTabuleiroParaMensagem :: [[Char]] -> Int -> Int -> String
+--preparaTabuleiroParaMensagem [] _ _ = ""
+--preparaTabuleiroParaMensagem [[]] _ _ = ""
+--preparaTabuleiroParaMensagem _ 0 n = concatMap (\x -> show x ++ " ") [1..n] ++ "\n" ++ preparaTabuleiroParaMensagem [[]] 1 n
+--preparaTabuleiroParaMensagem (h:t) n 0 = show n ++ " " ++ intersperse ' ' h ++ "\n" ++ preparaTabuleiroParaMensagem t (n+1) 0
+--preparaTabuleiroParaMensagem (h:t) i n = show i ++ "  " ++ intersperse ' ' h ++ "\n" ++ preparaTabuleiroParaMensagem t (i+1) n
+
 
 pegaOrientacaoTabuleiro :: IO Char
 pegaOrientacaoTabuleiro = do
@@ -316,8 +325,8 @@ pegaValor char tamTabuleiro = do
 iniciaJogo :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ()
 iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro= do
            system "clear"
-           printaTabuleiro tabJogo "Tabuleiro do Jogador:"
-           printaTabuleiro tabBotJogo "Tabuleiro do Bot:"
+           printaTabuleiro tabJogo tamTabuleiro "Tabuleiro do Jogador:"
+           printaTabuleiro tabBotJogo tamTabuleiro "Tabuleiro do Bot:"
 
            let naviosJog = contaNavios tabJogador
            let naviosBot = contaNavios tabBot
