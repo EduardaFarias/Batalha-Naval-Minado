@@ -165,6 +165,7 @@ doWhile :: Bool -> (function -> IO Jogadores) -> Jogadores -> Int -> IO Jogadore
 doWhile condition function dados tamTabuleiro
   | condition = do 
                 system "clear"
+                -- Esses são os tabueiros que irão guardar os navios
                 tabuleiro_Jogador <- criaMatriz tamTabuleiro
                 tabuleiro_Bot <- criaMatrizBot tamTabuleiro
 
@@ -188,11 +189,11 @@ doWhile condition function dados tamTabuleiro
 
 -- função para criar a matriz com um tamanho determinado pelo usuário ou com tamanho 10 caso o usuário não redefina o tamanho do tabuleiro
 criaMatriz :: Int -> IO [[Char]]
-criaMatriz n = return $ replicate n (intercalate "" (replicate (n) "~"))
+criaMatriz n = return $ replicate n (intercalate " " (replicate (n) "~"))
 
 criaMatrizBot :: Int -> IO [[Char]]
 criaMatrizBot n = do
-                  tabuleiro_Bot <- return $ replicate n (intercalate "" (replicate (n) "~"))
+                  tabuleiro_Bot <- return $ replicate n (intercalate " " (replicate (n) "~"))
                   adicionaNavioNoBot tabuleiro_Bot (round (fromIntegral n / 2)) n
 
 adicionaNavioNoBot :: [String] -> Int -> Int -> IO [String]
@@ -224,11 +225,10 @@ adicionaNavio tabuleiro posI posJ tamNavio = return (adicionaNavioNaLinha tabule
 
 adicionaNavioNaLinha :: [[Char]] -> Int -> Int -> Int -> [[Char]]
 adicionaNavioNaLinha (h:t) tamNavio posI posJ
-    | posI == 0 && t == [] = [take posJ h] ++ replicate (tamNavio) "#" ++ [drop (posJ + tamNavio) h]
+    | posI == 0 && t == [] = [concat [take posJ h, replicate tamNavio '#', drop (posJ + tamNavio) h]]
     | posI == 0 = ((take posJ h) ++ ['#' | _  <- [posJ..(posJ + tamNavio - 1)]] ++ (drop (posJ + tamNavio) h)) : t
     | null t = [h]
     | otherwise = h : adicionaNavioNaLinha t tamNavio (posI - 1) posJ
-
 
 verificaTemNavioNaLinha :: [[Char]] -> Int -> Int -> Int -> Bool
 verificaTemNavioNaLinha tabuleiro posI posJ tamNavio =
@@ -245,13 +245,13 @@ executaJogoComMaquina dados = menu dados
 montaTabuleiroJogador :: [[Char]] -> Int -> Int -> IO [[Char]]
 montaTabuleiroJogador tabuleiro 1 _ = return tabuleiro
 montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro = do
-                      system "clear"
+                      --system "clear"
                       printaTabuleiro tabuleiro  tamTabuleiro "Esse é o seu tabuleiro:"
 
                       putStrLn ("\nO navio tem tamanho: " ++ show tamNavio)
                       orientacao <- pegaOrientacaoTabuleiro
                       
-                      putStrLn "Insira as posicoes X (de 0 a 9) Y (de 0 a 19) para posicionar seu navio."
+                      putStrLn "Insira as posicoes X (de 1 a 9) Y (de 1 a 9) para posicionar seu navio."
                       valorX <- pegaValor 'X' tamTabuleiro
                       valorY <- pegaValor 'Y' tamTabuleiro
 
@@ -278,28 +278,31 @@ montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro = do
                           putStrLn "O tamanho do navio esta fora dos limites, escolha outra posicao"
                           montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
 
+
+imprimeTabuleiro :: [[Char]] -> Int -> IO ()
+imprimeTabuleiro tabuleiro tamTabuleiro = do
+    putStr "     "
+    mapM_ (\i -> putStr $ show i ++ "   ") [1..9]
+    if(tamTabuleiro > 9) then mapM_ (\i -> putStr $ show i ++ "  ") [10..tamTabuleiro]
+    else putStr ""
+    putStr "\n"
+    imprimeLinhas tabuleiro 1 tamTabuleiro
+
+imprimeLinhas :: [[Char]] -> Int -> Int -> IO ()
+imprimeLinhas [] _ _ = return ()
+imprimeLinhas (h:t) numLinha tamTabuleiro = do
+    putStr (if numLinha < 10 then " " ++ show numLinha else show numLinha)
+    putStr " "
+    mapM_ (\x -> if x == '#' then putStr "  # " else if x == '*' then putStr "  * " else putStr "  ~ ") (take tamTabuleiro h)
+    putStr "\n"
+    imprimeLinhas t (numLinha + 1) tamTabuleiro
+
+
+
 printaTabuleiro :: [[Char]] -> Int -> String -> IO()
 printaTabuleiro tabuleiro tam msg = do
       putStrLn msg 
-      putStrLn (preparaTabuleiroParaMensagem  tabuleiro 0 tam)
-
-preparaTabuleiroParaMensagem :: [[Char]] -> Int ->  Int ->  String
-preparaTabuleiroParaMensagem [] i _ = ""
-preparaTabuleiroParaMensagem [[]] i _ = ""
-preparaTabuleiroParaMensagem tabuleiro 0 n = concatMap (\x -> show x ++ " ") [1..n] ++"\n" ++ preparaTabuleiroParaMensagem tabuleiro 1 n
---preparaTabuleiroParaMensagem tabuleiro 0 = "   1 2 3 4 5 6 7 8 9 10\n" ++ preparaTabuleiroParaMensagem tabuleiro 1
-preparaTabuleiroParaMensagem (h:t) n 0 = show n ++ " " ++ intersperse ' ' (concat [h]) ++ "\n" 
-preparaTabuleiroParaMensagem (h:t) i n = "" ++ show i ++ "  " ++ intersperse ' ' (concat [h]) ++ "\n" ++ preparaTabuleiroParaMensagem t (i+1) n
- 
---import Data.List (intersperse)
-
---preparaTabuleiroParaMensagem :: [[Char]] -> Int -> Int -> String
---preparaTabuleiroParaMensagem [] _ _ = ""
---preparaTabuleiroParaMensagem [[]] _ _ = ""
---preparaTabuleiroParaMensagem _ 0 n = concatMap (\x -> show x ++ " ") [1..n] ++ "\n" ++ preparaTabuleiroParaMensagem [[]] 1 n
---preparaTabuleiroParaMensagem (h:t) n 0 = show n ++ " " ++ intersperse ' ' h ++ "\n" ++ preparaTabuleiroParaMensagem t (n+1) 0
---preparaTabuleiroParaMensagem (h:t) i n = show i ++ "  " ++ intersperse ' ' h ++ "\n" ++ preparaTabuleiroParaMensagem t (i+1) n
-
+      imprimeTabuleiro tabuleiro tam
 
 pegaOrientacaoTabuleiro :: IO Char
 pegaOrientacaoTabuleiro = do
@@ -317,14 +320,14 @@ pegaValor char tamTabuleiro = do
                   putStrLn (char : ": ")
                   valor <- readLn :: IO Int
 
-                  if(valor < 0 || valor > tamTabuleiro) then do
+                  if((valor-1) < 0 || (valor-1) > tamTabuleiro) then do
                     putStrLn ("O valor de " ++ [char] ++ " é invalido, insira um valor entre 0 e 9.")
                     pegaValor char tamTabuleiro
-                  else return valor
+                  else return (valor-1)
 
 iniciaJogo :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ()
 iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro= do
-           system "clear"
+          -- system "clear"
            printaTabuleiro tabJogo tamTabuleiro "Tabuleiro do Jogador:"
            printaTabuleiro tabBotJogo tamTabuleiro "Tabuleiro do Bot:"
 
@@ -351,7 +354,7 @@ disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro = do
     valorX <- pegaValor 'X' tamTabuleiro
     valorY <- pegaValor 'Y' tamTabuleiro
 
-    if((tabBotJogo !! valorX !! valorY) `elem` ['X', '~']) then do
+    if((tabBotJogo !! valorX !! valorY) `elem` ['X', '*']) then do
       putStrLn "Voce já disparou nesta posição. Escolha uma outra posicao."
       disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro
     else if((tabBot !! valorX !! valorY) == '#') then do
@@ -364,6 +367,7 @@ disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro = do
       putStrLn "Voce acertou na água!"
       let simbolo = '*'
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
+     -- putStrLn $ unlines tabBotJogoFinal
       return (tabBot, tabBotJogoFinal)
 
 
@@ -379,13 +383,6 @@ disparaEmNavio (h:t) valorX valorY simbolo
     | valorX == 0 = (take valorY h ++ [simbolo] ++ drop (valorY + 1) h) : disparaEmNavio t (valorX - 1) valorY simbolo
     | null t = [h]
     | otherwise = h : disparaEmNavio t (valorX - 1) valorY simbolo
-
-
-
---printTabuleiro :: [[Char]] -> String -> IO ()
---printTabuleiro tabuleiro msg = do
---                putStrLn msg
---                putStr $ unlines tabuleiro
 
 contaNavios :: [[Char]] -> Int
 contaNavios tabuleiro =
