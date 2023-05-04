@@ -293,7 +293,7 @@ imprimeLinhas [] _ _ = return ()
 imprimeLinhas (h:t) numLinha tamTabuleiro = do
     putStr (if numLinha < 10 then " " ++ show numLinha else show numLinha)
     putStr " "
-    mapM_ (\x -> if x == '#' then putStr "  # " else if x == '*' then putStr "  * " else putStr "  ~ ") (take tamTabuleiro h)
+    mapM_ (\x -> if x == 'X' then putStr "  X " else if x == '*' then putStr "  * " else if x == '#' then putStr "  # " else putStr "  ~ ") (take tamTabuleiro h)
     putStr "\n"
     imprimeLinhas t (numLinha + 1) tamTabuleiro
 
@@ -327,7 +327,7 @@ pegaValor char tamTabuleiro = do
 
 iniciaJogo :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ()
 iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro= do
-          -- system "clear"
+           system "clear"
            printaTabuleiro tabJogo tamTabuleiro "Tabuleiro do Jogador:"
            printaTabuleiro tabBotJogo tamTabuleiro "Tabuleiro do Bot:"
 
@@ -338,14 +338,14 @@ iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro= do
            putStrLn ("Número de navios restantes do bot: " ++ show naviosBot)
 
            if (naviosJog == 0) then
-            putStrLn "Que pena você perdeu! Seus navios foram para o fundo do mar!"
+              putStrLn "Que pena você perdeu! Seus navios foram para o fundo do mar!"
            else if (naviosBot == 0) then
-            putStrLn "Você é um verdadeiro almirante! Parabéns pela vitória na batalha naval."
+              putStrLn "Você é um verdadeiro almirante! Parabéns pela vitória na batalha naval."
            else do
-            (tabBot_2, tabBotJogo_2) <- disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro
-            (tabJogador_2, tabJogo_2) <- disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro
+              (tabBot_2, tabBotJogo_2) <- disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro
+              (tabJogador_2, tabJogo_2) <- disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro
 
-            iniciaJogo tabJogador_2 tabJogo_2 tabBot_2 tabBotJogo_2 tamTabuleiro
+              iniciaJogo tabJogador_2 tabJogo_2 tabBot_2 tabBotJogo_2 tamTabuleiro
   
 
 disparaNoTabuleiroBot :: [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]])
@@ -363,11 +363,11 @@ disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro = do
       let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
       return (tabBotFinal, tabBotJogoFinal)
+   
     else do
       putStrLn "Voce acertou na água!"
       let simbolo = '*'
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
-     -- putStrLn $ unlines tabBotJogoFinal
       return (tabBot, tabBotJogoFinal)
 
 
@@ -379,7 +379,8 @@ disparaNoTabuleiroJogador tabBot tabBotJogo tamTabuleiro = return (tabBot, tabBo
 -- AJEITAR ESSA FUNÇÃO
 disparaEmNavio :: [[Char]] -> Int -> Int -> Char -> [[Char]]
 disparaEmNavio (h:t) valorX valorY simbolo
-    | valorX == 0 && t == [] = [take valorY h] ++ [[simbolo]] ++ [drop (valorY + 1) h]
+  --  | valorX == 0 && t == [] = [take valorY h] ++ [[simbolo]] ++ [drop (valorY + 1) h]
+    | valorX == 0 && t == [] = [concat [take valorY h, [simbolo], drop (valorY + 1) h]]
     | valorX == 0 = (take valorY h ++ [simbolo] ++ drop (valorY + 1) h) : disparaEmNavio t (valorX - 1) valorY simbolo
     | null t = [h]
     | otherwise = h : disparaEmNavio t (valorX - 1) valorY simbolo
