@@ -188,11 +188,11 @@ doWhile condition function dados tamTabuleiro
 
 -- função para criar a matriz com um tamanho determinado pelo usuário ou com tamanho 10 caso o usuário não redefina o tamanho do tabuleiro
 criaMatriz :: Int -> IO [[Char]]
-criaMatriz n = return $ replicate n (intercalate "" (replicate (n) "."))
+criaMatriz n = return $ replicate n (intercalate "" (replicate (n) "~"))
 
 criaMatrizBot :: Int -> IO [[Char]]
 criaMatrizBot n = do
-                  tabuleiro_Bot <- return $ replicate n (intercalate "" (replicate (n) "."))
+                  tabuleiro_Bot <- return $ replicate n (intercalate "" (replicate (n) "~"))
                   adicionaNavioNoBot tabuleiro_Bot (round (fromIntegral n / 2)) n
 
 adicionaNavioNoBot :: [String] -> Int -> Int -> IO [String]
@@ -246,8 +246,8 @@ montaTabuleiroJogador :: [[Char]] -> Int -> Int -> IO [[Char]]
 montaTabuleiroJogador tabuleiro 1 _ = return tabuleiro
 montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro = do
                       system "clear"
-                      putStrLn "Esse é o seu tabuleiro: "
-                      putStr $ unlines tabuleiro
+                      printaTabuleiro tabuleiro "Esse é o seu tabuleiro:"
+
                       putStrLn ("\nO navio tem tamanho: " ++ show tamNavio)
                       orientacao <- pegaOrientacaoTabuleiro
                       
@@ -278,6 +278,19 @@ montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro = do
                           putStrLn "O tamanho do navio esta fora dos limites, escolha outra posicao"
                           montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
 
+printaTabuleiro :: [[Char]] -> String -> IO()
+printaTabuleiro tabuleiro msg = do
+      putStrLn msg
+      putStrLn (preparaTabuleiroParaMensagem  tabuleiro 0)
+
+preparaTabuleiroParaMensagem :: [[Char]] -> Int -> String
+preparaTabuleiroParaMensagem [] i = ""
+preparaTabuleiroParaMensagem [[]] i = ""
+preparaTabuleiroParaMensagem tabuleiro 0 = "   1 2 3 4 5 6 7 8 9 10\n" ++ preparaTabuleiroParaMensagem tabuleiro 1
+preparaTabuleiroParaMensagem (h:t) 10 = show 10 ++ " " ++ intersperse ' ' (concat [h]) ++ "\n" 
+preparaTabuleiroParaMensagem (h:t) i = "" ++ show i ++ "  " ++ intersperse ' ' (concat [h]) ++ "\n" ++ preparaTabuleiroParaMensagem t (i+1)
+ 
+  
 
 pegaOrientacaoTabuleiro :: IO Char
 pegaOrientacaoTabuleiro = do
@@ -303,8 +316,8 @@ pegaValor char tamTabuleiro = do
 iniciaJogo :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ()
 iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro= do
            system "clear"
-           printTabuleiro tabJogo "Tabuleiro do Jogador:"
-           printTabuleiro tabBotJogo "Tabuleiro do Bot:"
+           printaTabuleiro tabJogo "Tabuleiro do Jogador:"
+           printaTabuleiro tabBotJogo "Tabuleiro do Bot:"
 
            let naviosJog = contaNavios tabJogador
            let naviosBot = contaNavios tabBot
@@ -340,7 +353,7 @@ disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro = do
       return (tabBotFinal, tabBotJogoFinal)
     else do
       putStrLn "Voce acertou na água!"
-      let simbolo = '~'
+      let simbolo = '*'
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
       return (tabBot, tabBotJogoFinal)
 
@@ -360,10 +373,10 @@ disparaEmNavio (h:t) valorX valorY simbolo
 
 
 
-printTabuleiro :: [[Char]] -> String -> IO ()
-printTabuleiro tabuleiro msg = do
-                putStrLn msg
-                putStr $ unlines tabuleiro
+--printTabuleiro :: [[Char]] -> String -> IO ()
+--printTabuleiro tabuleiro msg = do
+--                putStrLn msg
+--                putStr $ unlines tabuleiro
 
 contaNavios :: [[Char]] -> Int
 contaNavios tabuleiro =
