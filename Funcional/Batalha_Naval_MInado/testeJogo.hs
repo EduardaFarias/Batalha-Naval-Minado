@@ -168,18 +168,15 @@ doWhile condition function dados tamTabuleiro
                 tabuleiro_Jogador <- criaMatriz tamTabuleiro
                 tabuleiro_Bot <- criaMatrizBot tamTabuleiro
 
+                -- Esses são os tabuleiro que o usuário irá enxergar durante o jogo
+                tabuleiro_Jogador_Aux <- criaMatriz tamTabuleiro
+                tabuleiro_Bot_Aux <- criaMatriz tamTabuleiro
+
                 tabuleiro_Jogador <- montaTabuleiroJogador tabuleiro_Jogador (round (fromIntegral tamTabuleiro / 2)) tamTabuleiro
 
-                system "clear"
-                putStrLn "Seu tabuleiro: "
-                putStr $ unlines tabuleiro_Jogador
 
-                putStrLn "O tabuleiro do bot: "
-                putStr $ unlines tabuleiro_Bot
+                iniciaJogo tabuleiro_Jogador tabuleiro_Jogador_Aux tabuleiro_Bot tabuleiro_Bot_Aux tamTabuleiro
 
-               -- iniciaTabuleiro tabuleiro_Jogador 10 0
-              --  tabuleiro2 <- configuraNavios 3 10 tabuleiro_Jogador
-              --  iniciaTabuleiro tabuleiro2 10 0
                 putStrLn "\nVocê quer jogar novamente? [1 para sim, outro número para sair]"
                 putStr "\n→ Opção: \n\n"
                 op <- getChar
@@ -255,8 +252,8 @@ montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro = do
                       orientacao <- pegaOrientacaoTabuleiro
                       
                       putStrLn "Insira as posicoes X (de 0 a 9) Y (de 0 a 19) para posicionar seu navio."
-                      valorX <- pegaValor 'X'
-                      valorY <- pegaValor 'Y'
+                      valorX <- pegaValor 'X' tamTabuleiro
+                      valorY <- pegaValor 'Y' tamTabuleiro
 
                       if (orientacao == 'H') then
                         if ((valorY + tamNavio - 1) < tamTabuleiro) then
@@ -293,14 +290,85 @@ pegaOrientacaoTabuleiro = do
         pegaOrientacaoTabuleiro
       else return ori
                       
-pegaValor :: Char -> IO Int
-pegaValor char = do 
+pegaValor :: Char -> Int -> IO Int
+pegaValor char tamTabuleiro = do 
                   putStrLn (char : ": ")
                   valor <- readLn :: IO Int
 
-                  if(valor < 0 || valor > 9) then do
+                  if(valor < 0 || valor > tamTabuleiro) then do
                   putStrLn ("O valor de " ++ [char] ++ " é invalido, insira um valor entre 0 e 9.")
-                  pegaValor char
+                  pegaValor char tamTabuleiro
                   else return valor
+
+iniciaJogo :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ()
+iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro= do
+           system "clear"
+           printTabuleiro tabJogo "Tabuleiro do Jogador:"
+           printTabuleiro tabBotJogo "Tabuleiro do Bot:"
+
+           let naviosJog = contaNavios tabJogador
+           let naviosBot = contaNavios tabBot
+
+           putStrLn ("Número de navios restantes do jogador: " ++ show naviosJog)
+           putStrLn ("Número de navios restantes do bot: " ++ show naviosBot)
+
+           if (naviosJog == 0) then
+            putStrLn "Que pena você perdeu! Seus navios foram para o fundo do mar!"
+           else if (naviosBot == 0) then
+            putStrLn "Você é um verdadeiro almirante! Parabéns pela vitória na batalha naval."
+           else do
+            (tabBot_2, tabBotJogo_2) <- disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro
+            (tabJogador_2, tabJogo_2) <- disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro
+
+            iniciaJogo tabJogador_2 tabJogo_2 tabBot_2 tabBotJogo_2 tamTabuleiro
+  
+
+disparaNoTabuleiroBot :: [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]])
+disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro = do
+    putStrLn "Escolha as posições de X (de 0 a 9) e as posições Y (de 0 a 9)"
+    valorX <- pegaValor 'X' tamTabuleiro
+    valorY <- pegaValor 'Y' tamTabuleiro
+
+    if((tabBotJogo !! valorX !! valorY) `elem` ['X', '~']) then do
+      putStrLn "Voce já disparou nesta posição. Escolha uma outra posicao."
+      disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro
+    else if((tabBot !! valorX !! valorY) == '#') then do
+      putStrLn "Voce acertou um navio!"
+      let simbolo = 'X'
+      let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo
+      let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
+      return (tabBotFinal, tabBotJogoFinal)
+    else do
+      putStrLn "Voce acertou na água!"
+      let simbolo = '~'
+      let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
+      return (tabBot, tabBotJogoFinal)
+
+
+-- MONTAR ESSA FUNÇÃO
+disparaNoTabuleiroJogador :: [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]])
+disparaNoTabuleiroJogador tabBot tabBotJogo tamTabuleiro = return (tabBot, tabBotJogo)
+
+
+-- AJEITAR ESSA FUNÇÃO
+disparaEmNavio :: [[Char]] -> Int -> Int -> Char -> [[Char]]
+disparaEmNavio (h:t) valorX valorY simbolo
+    | valorX == 0 && t == [] = [take valorY h] ++ [[simbolo]] ++ [drop (valorY + 1) h]
+    | valorX == 0 = (take valorY h ++ [simbolo] ++ drop (valorY + 1) h) : disparaEmNavio t (valorX - 1) valorY simbolo
+    | null t = [h]
+    | otherwise = h : disparaEmNavio t (valorX - 1) valorY simbolo
+
+
+
+printTabuleiro :: [[Char]] -> String -> IO ()
+printTabuleiro tabuleiro msg = do
+                putStrLn msg
+                putStr $ unlines tabuleiro
+
+contaNavios :: [[Char]] -> Int
+contaNavios tabuleiro =
+    let navios = [verificaTemNavioNaLinha tabuleiro x y 1 | x <- [0..9], y <- [0..9]]
+    in length (filter not navios)
+
 
 
