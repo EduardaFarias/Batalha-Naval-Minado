@@ -296,8 +296,8 @@ pegaValor char tamTabuleiro = do
                   valor <- readLn :: IO Int
 
                   if(valor < 0 || valor > tamTabuleiro) then do
-                  putStrLn ("O valor de " ++ [char] ++ " é invalido, insira um valor entre 0 e 9.")
-                  pegaValor char tamTabuleiro
+                    putStrLn ("O valor de " ++ [char] ++ " é invalido, insira um valor entre 0 e 9.")
+                    pegaValor char tamTabuleiro
                   else return valor
 
 iniciaJogo :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ()
