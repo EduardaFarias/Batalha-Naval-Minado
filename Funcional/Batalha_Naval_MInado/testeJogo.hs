@@ -242,6 +242,8 @@ temNavio tab = '#' `elem` tab
 executaJogoComMaquina :: Jogadores -> IO Jogadores
 executaJogoComMaquina dados = menu dados
 
+
+-- AJEITAR ESSA FUNÇÃO
 montaTabuleiroJogador :: [[Char]] -> Int -> Int -> IO [[Char]]
 montaTabuleiroJogador tabuleiro 1 _ = return tabuleiro
 montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro = do
@@ -371,17 +373,30 @@ disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro = do
       return (tabBot, tabBotJogoFinal)
 
 
--- MONTAR ESSA FUNÇÃO
 disparaNoTabuleiroJogador :: [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]])
-disparaNoTabuleiroJogador tabBot tabBotJogo tamTabuleiro = return (tabBot, tabBotJogo)
+disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro = do
+    gen <- newStdGen
+    let (valorX, _) = randomR (0, (tamTabuleiro-1)) gen
+    let (valorY, _) = randomR (0, (tamTabuleiro-1)) gen
 
+    if(tabJogo !! valorX !! valorY `elem` ['X', '*']) then
+      disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro
+    else 
+      if(tabJogador !! valorX !! valorY == '#') then do
+        let simbolo = 'X'
+        let tabJogadorFinal = disparaEmNavio tabJogador valorX valorY simbolo
+        let tabJogoFinal = disparaEmNavio tabJogo valorX valorY simbolo
+        return (tabJogadorFinal, tabJogoFinal)
+      else do
+        let simbolo = '*'
+        let tabJogoFinal = disparaEmNavio tabJogo valorX valorY simbolo
+        return (tabJogador, tabJogoFinal)
 
--- AJEITAR ESSA FUNÇÃO
+--AJEITAR ESSA FUNÇÃO
 disparaEmNavio :: [[Char]] -> Int -> Int -> Char -> [[Char]]
 disparaEmNavio (h:t) valorX valorY simbolo
-  --  | valorX == 0 && t == [] = [take valorY h] ++ [[simbolo]] ++ [drop (valorY + 1) h]
     | valorX == 0 && t == [] = [concat [take valorY h, [simbolo], drop (valorY + 1) h]]
-    | valorX == 0 = (take valorY h ++ [simbolo] ++ drop (valorY + 1) h) : disparaEmNavio t (valorX - 1) valorY simbolo
+    | valorX == 0 = (take valorY h ++ [simbolo] ++ drop (valorY + 1) h) : t
     | null t = [h]
     | otherwise = h : disparaEmNavio t (valorX - 1) valorY simbolo
 
@@ -389,6 +404,8 @@ contaNavios :: [[Char]] -> Int
 contaNavios tabuleiro =
     let navios = [verificaTemNavioNaLinha tabuleiro x y 1 | x <- [0..9], y <- [0..9]]
     in length (filter not navios)
+
+
 
 
 
