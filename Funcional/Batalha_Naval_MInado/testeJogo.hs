@@ -5,6 +5,7 @@ import System.IO.Error
 import System.Process
 import Data.List
 import System.Random
+import Data.Function
 
 import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
 
@@ -77,7 +78,8 @@ menu dados = do
                 putStrLn "-------------------- Batalha Naval --------------------"
                 putStrLn "\n ● Digite 1 para cadastrar jogador"
                 putStrLn "\n ● Digite 2 para jogar"
-                putStrLn "\n ● Digite 3 para ver o modo história"
+                putStrLn "\n ● Digite 3 para visualizar o ranking"
+                putStrLn "\n ● Digite 4 para ver o modo história"
                 putStrLn "\n ● Digite 0 para sair "
                 putStr "\n→ Opção: \n\n"
                 op <- getChar
@@ -93,7 +95,18 @@ executarOpcao dados '0' = do
 
 executarOpcao dados '1' = cadastrarJogador dados
 executarOpcao dados '2' = prepararJogo dados 10
-executarOpcao dados '3' = menu dados
+executarOpcao dados '3' = do
+                            system "clear" -- limpa a tela
+                            putStrLn "\nRanking dos jogadores:\n"
+                            if (null dados) then do
+                              putStrLn ("Não há jogadores cadastrados!")
+                            else
+                              -- a função ordenar crescentemente pela pontuação
+                              exibirRanking (reverse (ordenar dados))
+                            putStrLn "\nPressione <Enter> para voltar ao menu..."
+                            getChar
+                            menu dados
+executarOpcao dados '4' = menu dados
 executarOpcao dados _ = do
                           putStrLn ("\nOpção inválida! Tente novamente...")
                           putStrLn ("\nPressione <Enter> para voltar ao menu")
@@ -176,7 +189,7 @@ doWhile condition function dados tamTabuleiro
                   tabuleiro_Jogador <- montaTabuleiroJogador tabuleiro_Jogador (round (fromIntegral tamTabuleiro / 2)) tamTabuleiro
 
 
-                  iniciaJogo tabuleiro_Jogador tabuleiro_Jogador_Aux tabuleiro_Bot tabuleiro_Bot_Aux tamTabuleiro
+                  dadosAtualizado <- iniciaJogo tabuleiro_Jogador tabuleiro_Jogador_Aux tabuleiro_Bot tabuleiro_Bot_Aux tamTabuleiro jogador1 dados
 
                   putStrLn "\nVocê quer jogar novamente? [1 para sim, outro número para sair]"
                   putStr "\n→ Opção: \n\n"
@@ -361,11 +374,11 @@ imprimeLinhas (h:t) numLinha tamTabuleiro = do
 
                       
 
-iniciaJogo :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ()
-iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro= do
+iniciaJogo :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> String -> Jogadores -> IO Jogadores
+iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro nomeJogador dados = do
            system "clear"
-           printaTabuleiro tabJogo tamTabuleiro "Tabuleiro do Jogador:"
-           printaTabuleiro tabBotJogo tamTabuleiro "Tabuleiro do Bot:"
+           printaTabuleiro tabJogo tamTabuleiro ("Tabuleiro de " ++ nomeJogador ++ ":\n")
+           printaTabuleiro tabBotJogo tamTabuleiro "Tabuleiro do Bot:\n"
 
            let naviosJog = contaNavios tabJogador tamTabuleiro
            let naviosBot = contaNavios tabBot tamTabuleiro
@@ -373,16 +386,34 @@ iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro= do
            putStrLn ("Número de navios restantes do jogador: " ++ show naviosJog)
            putStrLn ("Número de navios restantes do bot: " ++ show naviosBot)
 
-           if (naviosJog == 0) then
+           if (naviosJog == 0) then do
               putStrLn "Que pena você perdeu! Seus navios foram para o fundo do mar!"
-           else if (naviosBot == 0) then
+              return dados
+           else if (naviosBot == 0) then do
               putStrLn "Você é um verdadeiro almirante! Parabéns pela vitória na batalha naval."
+              -- abre o arquivo para escrita para atualizá-lo
+              arq_escrita <- openFile "dados.txt" WriteMode
+              hPutStrLn arq_escrita (show (atualizaPontuacao dados nomeJogador))
+              hClose arq_escrita
+
+              -- abre o arquivo para leitura
+              arq_leitura <- openFile "dados.txt" ReadMode
+              dados_atualizados <- hGetLine arq_leitura
+              hClose arq_leitura
+
+              return (read dados_atualizados)
            else do
               (tabBot_2, tabBotJogo_2) <- disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro
               (tabJogador_2, tabJogo_2) <- disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro
 
-              iniciaJogo tabJogador_2 tabJogo_2 tabBot_2 tabBotJogo_2 tamTabuleiro
+              iniciaJogo tabJogador_2 tabJogo_2 tabBot_2 tabBotJogo_2 tamTabuleiro nomeJogador dados
   
+-- função que atualiza a pontuação do vencedor
+-- recebe a lista (Jogadores), o nome do vencedor e retorna uma nova lista atualizada
+atualizaPontuacao :: Jogadores -> String -> Jogadores
+atualizaPontuacao ((Jogador nome pontuacao):xs) vencedor
+                | (nome == vencedor) = [(Jogador nome (pontuacao + 1))] ++ xs
+                | otherwise = (Jogador nome pontuacao):(atualizaPontuacao xs vencedor)
 
 disparaNoTabuleiroBot :: [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]])
 disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro = do
@@ -439,6 +470,23 @@ contaNavios tabuleiro tamTabuleiro =
     in length (filter not navios)
 
 
+-- exibir ranking dos jogadores
+exibirRanking :: Jogadores -> IO ()
+exibirRanking [] = return ()
+exibirRanking (x:xs) = do
+                            putStrLn ((obterNome x) ++ " possui " ++ (show (obterPontuacao x)) ++ " pontos")
+                            exibirRanking xs
+  
+-- função que recebe um jogador e retorna o nome
+obterNome :: Jogador -> Nome
+obterNome (Jogador nome _) = nome
 
+-- função que recebe um jogador e retorna a pontuação
+obterPontuacao :: Jogador -> Pontuacao
+obterPontuacao (Jogador _ pontuacao) = pontuacao
+
+-- função que define o critério de ordenação
+ordenar :: Jogadores -> Jogadores
+ordenar dados = sortBy (compare `on` obterPontuacao) dados
 
 
