@@ -121,19 +121,14 @@ cadastrarJogador dados = do
                               getChar
                               menu ((Jogador nome 0):dados)
 
-
+-- função que recebe uma string e retorna uma IO String
 getString :: String -> IO String
 getString str = do
                   putStr str
                   res <- getLine
                   return res
 
-existeJogador :: Jogadores -> String -> Bool
-existeJogador [] _ = False
-existeJogador ((Jogador nomeCadastrado pontuacao):xs) nome
-                | (nomeCadastrado == nome) = True
-                | otherwise = existeJogador xs nome
-
+-- função que prepara o segundo menu do jogo
 prepararJogo :: Jogadores -> Int -> IO Jogadores
 prepararJogo dados tamTabuleiro = do
                       system "clear"
@@ -147,10 +142,10 @@ prepararJogo dados tamTabuleiro = do
                       getChar
                       executarOpcaoJogo dados op tamTabuleiro
 
+-- função para manipular a opção escolhida pelo usuário do segundo menu
 executarOpcaoJogo :: Jogadores -> Char -> Int -> IO Jogadores
 executarOpcaoJogo dados '0' tamTabuleiro = menu dados
 executarOpcaoJogo dados '1' tamTabuleiro = doWhile True executaJogoComMaquina dados tamTabuleiro
-
 executarOpcaoJogo dados '2' tamTabuleiro = menu dados
 executarOpcaoJogo dados '3' tamTabuleiro = do
                   system "clear"
@@ -165,44 +160,144 @@ doWhile :: Bool -> (function -> IO Jogadores) -> Jogadores -> Int -> IO Jogadore
 doWhile condition function dados tamTabuleiro
   | condition = do 
                 system "clear"
-                -- Esses são os tabueiros que irão guardar os navios
-                tabuleiro_Jogador <- criaMatriz tamTabuleiro
-                tabuleiro_Bot <- criaMatrizBot tamTabuleiro
+                jogador1 <- chamaJogador dados
 
-                -- Esses são os tabuleiro que o usuário irá enxergar durante o jogo
-                tabuleiro_Jogador_Aux <- criaMatriz tamTabuleiro
-                tabuleiro_Bot_Aux <- criaMatriz tamTabuleiro
+                if(jogador1 == "JogadorNaoExiste") then doWhile True executaJogoComMaquina dados tamTabuleiro
+                else do
+                  system "clear"
+                  -- Esses são os tabueiros que irão guardar os navios
+                  tabuleiro_Jogador <- criaMatriz tamTabuleiro
+                  tabuleiro_Bot <- criaMatrizBot tamTabuleiro
 
-                tabuleiro_Jogador <- montaTabuleiroJogador tabuleiro_Jogador (round (fromIntegral tamTabuleiro / 2)) tamTabuleiro
+                  -- Esses são os tabuleiro que o usuário irá enxergar durante o jogo
+                  tabuleiro_Jogador_Aux <- criaMatriz tamTabuleiro
+                  tabuleiro_Bot_Aux <- criaMatriz tamTabuleiro
+
+                  tabuleiro_Jogador <- montaTabuleiroJogador tabuleiro_Jogador (round (fromIntegral tamTabuleiro / 2)) tamTabuleiro
 
 
-                iniciaJogo tabuleiro_Jogador tabuleiro_Jogador_Aux tabuleiro_Bot tabuleiro_Bot_Aux tamTabuleiro
+                  iniciaJogo tabuleiro_Jogador tabuleiro_Jogador_Aux tabuleiro_Bot tabuleiro_Bot_Aux tamTabuleiro
 
-                putStrLn "\nVocê quer jogar novamente? [1 para sim, outro número para sair]"
-                putStr "\n→ Opção: \n\n"
-                op <- getChar
-                getChar
-                if(op == '1') then doWhile True executaJogoComMaquina dados tamTabuleiro
-                else doWhile False executaJogoComMaquina dados tamTabuleiro
+                  putStrLn "\nVocê quer jogar novamente? [1 para sim, outro número para sair]"
+                  putStr "\n→ Opção: \n\n"
+                  op <- getChar
+                  getChar
+                  if(op == '1') then doWhile True executaJogoComMaquina dados tamTabuleiro
+                  else doWhile False executaJogoComMaquina dados tamTabuleiro
   | otherwise = menu dados
 
+-- Define um nome para um jogador
+chamaJogador :: Jogadores -> IO String
+chamaJogador dados = do
+  putStrLn "Você deseja jogar com um jogador cadastrado? (Digite S para sim e N para não)"
+  putStr "\n→ Opção: \n\n"
+  op <- getChar
+  getChar
+
+  if(op == 'S') then do
+    putStrLn "Digite o nome do primeiro jogador: "
+    jogador <- getLine
+    if not(existeJogador dados jogador) then do
+      putStrLn "Esse jogador não existe!"
+      threadDelay 1000000
+      return "JogadorNaoExiste"
+    else return jogador
+  else if op == 'N' then return "Jogador 1"
+  else do
+    putStrLn "Opção Inválida"
+    threadDelay 1000000
+    return "JogadorNaoExiste"
+
+-- função que verifica se um jogador existe (o nome do jogador é único)
+existeJogador :: Jogadores -> String -> Bool
+existeJogador [] _ = False
+existeJogador ((Jogador nomeCadastrado pontuacao):xs) nome
+                | (nomeCadastrado == nome) = True
+                | otherwise = existeJogador xs nome
 
 -- função para criar a matriz com um tamanho determinado pelo usuário ou com tamanho 10 caso o usuário não redefina o tamanho do tabuleiro
 criaMatriz :: Int -> IO [[Char]]
 criaMatriz n = return $ replicate n (intercalate " " (replicate (n) "~"))
 
+-- função para criar a matriz do bot com um tamanho determinado pelo usuário ou com tamanho 10 caso o usuário não redefina o tamanho do tabuleiro
 criaMatrizBot :: Int -> IO [[Char]]
 criaMatrizBot n = do
                   tabuleiro_Bot <- return $ replicate n (intercalate " " (replicate (n) "~"))
                   adicionaNavioNoBot tabuleiro_Bot (round (fromIntegral n / 2)) n
 
+-- função que vai permitir ao usuario posicionar seus navios
+montaTabuleiroJogador :: [[Char]] -> Int -> Int -> IO [[Char]]
+montaTabuleiroJogador tabuleiro 1 _ = return tabuleiro
+montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro = do
+                      system "clear"
+                      printaTabuleiro tabuleiro tamTabuleiro "Esse é o seu tabuleiro:\n"
+
+                      putStrLn ("\nO navio tem tamanho: " ++ show tamNavio)
+                      orientacao <- pegaOrientacaoTabuleiro
+                      
+                      putStrLn ("Insira as posicoes X (de 1 a " ++ show tamTabuleiro ++ ") Y (de 1 a " ++ show tamTabuleiro ++ ") para posicionar seu navio.")
+                      valorX <- pegaValor 'X' tamTabuleiro
+                      valorY <- pegaValor 'Y' tamTabuleiro
+
+                      if (orientacao == 'H') then
+                        if ((valorY + tamNavio - 1) < tamTabuleiro) then
+                          if(verificaTemNavioNaLinha tabuleiro valorX valorY tamNavio) then do
+                            novoTab <- adicionaNavio tabuleiro valorX valorY tamNavio
+                            montaTabuleiroJogador novoTab (tamNavio-1) tamTabuleiro
+                          else do
+                            putStrLn "Já tem um navio nesta posicao, insira outro valor novamente."
+                            montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
+                        else do
+                          putStrLn "O tamanho do navio esta fora dos limites, escolha outra posicao"
+                          montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
+                      else do
+                        if ((valorX + tamNavio - 1) < tamTabuleiro) then
+                          if(verificaTemNavioNaLinha (transpose tabuleiro) valorX valorY tamNavio) then do
+                            novoTab <- fmap transpose (adicionaNavio (transpose tabuleiro) valorY valorX tamNavio)
+                            montaTabuleiroJogador novoTab (tamNavio-1) tamTabuleiro
+                          else do
+                            putStrLn "Já tem um navio nesta posicao, insira outro valor novamente."
+                            montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
+                        else do
+                          putStrLn "O tamanho do navio esta fora dos limites, escolha outra posicao"
+                          montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
+
+-- função para imprimir o tabuleiro
+printaTabuleiro :: [[Char]] -> Int -> String -> IO()
+printaTabuleiro tabuleiro tam msg = do
+      putStrLn msg 
+      imprimeTabuleiro tabuleiro tam
+
+-- função para pegar a orientação em que o usuário quer posicionar os navios
+pegaOrientacaoTabuleiro :: IO Char
+pegaOrientacaoTabuleiro = do
+      putStrLn "Em que orientação você que posicioná-lo? (Digite H para horizontal e V para vertical) "
+      ori <- getChar
+      getChar
+
+      if ((ori /= 'H') && (ori /= 'V')) then do
+        putStrLn "O valor digitado é invalido"
+        pegaOrientacaoTabuleiro
+      else return ori
+
+-- função para pegar as posições do tabuleiro que o usuário digitar
+pegaValor :: Char -> Int -> IO Int
+pegaValor char tamTabuleiro = do 
+                  putStrLn (char : ": ")
+                  valor <- readLn :: IO Int
+
+                  if((valor-1) < 0 || (valor-1) > tamTabuleiro) then do
+                    putStrLn ("O valor de " ++ [char] ++ " é invalido, insira um valor entre 0 e 9.")
+                    pegaValor char tamTabuleiro
+                  else return (valor-1)
+
+
 adicionaNavioNoBot :: [String] -> Int -> Int -> IO [String]
 adicionaNavioNoBot tabuleiro 1 _ = return tabuleiro
 adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro = do
-                  gen <- newStdGen
-                  let (posI, _) = randomR (0, (tamTabuleiro-1)) gen
-                  let (posJ, _) = randomR (0, (tamTabuleiro-1)) gen
-                  let (orientacao, _) = randomR (0, 1) gen :: (Int, StdGen)
+                  posI <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
+                  posJ <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
+                  orientacao <- randomRIO (0, 1) :: IO Int
 
                   if orientacao == 0 then
                     if ((posI + tamNavio <= 10) && (verificaTemNavioNaLinha tabuleiro posI posJ tamNavio)) then do
@@ -243,50 +338,14 @@ executaJogoComMaquina :: Jogadores -> IO Jogadores
 executaJogoComMaquina dados = menu dados
 
 
--- AJEITAR ESSA FUNÇÃO
-montaTabuleiroJogador :: [[Char]] -> Int -> Int -> IO [[Char]]
-montaTabuleiroJogador tabuleiro 1 _ = return tabuleiro
-montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro = do
-                      --system "clear"
-                      printaTabuleiro tabuleiro  tamTabuleiro "Esse é o seu tabuleiro:"
-
-                      putStrLn ("\nO navio tem tamanho: " ++ show tamNavio)
-                      orientacao <- pegaOrientacaoTabuleiro
-                      
-                      putStrLn "Insira as posicoes X (de 1 a 9) Y (de 1 a 9) para posicionar seu navio."
-                      valorX <- pegaValor 'X' tamTabuleiro
-                      valorY <- pegaValor 'Y' tamTabuleiro
-
-                      if (orientacao == 'H') then
-                        if ((valorY + tamNavio - 1) < tamTabuleiro) then
-                          if(verificaTemNavioNaLinha tabuleiro valorX valorY tamNavio) then do
-                            novoTab <- adicionaNavio tabuleiro valorX valorY tamNavio
-                            montaTabuleiroJogador novoTab (tamNavio-1) tamTabuleiro
-                          else do
-                            putStrLn "Já tem um navio nesta posicao, insira outro valor novamente."
-                            montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
-                        else do
-                          putStrLn "O tamanho do navio esta fora dos limites, escolha outra posicao"
-                          montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
-                      else do
-                        if ((valorX + tamNavio - 1) < tamTabuleiro) then
-                          if(verificaTemNavioNaLinha (transpose tabuleiro) valorX valorY tamNavio) then do
-                            novoTab <- fmap transpose (adicionaNavio (transpose tabuleiro) valorY valorX tamNavio)
-                            montaTabuleiroJogador novoTab (tamNavio-1) tamTabuleiro
-                          else do
-                            putStrLn "Já tem um navio nesta posicao, insira outro valor novamente."
-                            montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
-                        else do
-                          putStrLn "O tamanho do navio esta fora dos limites, escolha outra posicao"
-                          montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
-
-
 imprimeTabuleiro :: [[Char]] -> Int -> IO ()
 imprimeTabuleiro tabuleiro tamTabuleiro = do
     putStr "     "
-    mapM_ (\i -> putStr $ show i ++ "   ") [1..9]
-    if(tamTabuleiro > 9) then mapM_ (\i -> putStr $ show i ++ "  ") [10..tamTabuleiro]
-    else putStr ""
+    if (tamTabuleiro < 10) then mapM_ (\i -> putStr $ show i ++ "   ") [1..tamTabuleiro]
+    else do
+      mapM_ (\i -> putStr $ show i ++ "   ") [1..9]
+      if (tamTabuleiro > 9) then mapM_ (\i -> putStr $ show i ++ "  ") [10..tamTabuleiro]
+      else putStr ""
     putStr "\n"
     imprimeLinhas tabuleiro 1 tamTabuleiro
 
@@ -300,32 +359,7 @@ imprimeLinhas (h:t) numLinha tamTabuleiro = do
     imprimeLinhas t (numLinha + 1) tamTabuleiro
 
 
-
-printaTabuleiro :: [[Char]] -> Int -> String -> IO()
-printaTabuleiro tabuleiro tam msg = do
-      putStrLn msg 
-      imprimeTabuleiro tabuleiro tam
-
-pegaOrientacaoTabuleiro :: IO Char
-pegaOrientacaoTabuleiro = do
-      putStrLn "Em que orientação você que posicioná-lo? (Digite H para horizontal e V para vertical) "
-      ori <- getChar
-      getChar
-
-      if ((ori /= 'H') && (ori /= 'V')) then do
-        putStrLn "O valor digitado é invalido"
-        pegaOrientacaoTabuleiro
-      else return ori
                       
-pegaValor :: Char -> Int -> IO Int
-pegaValor char tamTabuleiro = do 
-                  putStrLn (char : ": ")
-                  valor <- readLn :: IO Int
-
-                  if((valor-1) < 0 || (valor-1) > tamTabuleiro) then do
-                    putStrLn ("O valor de " ++ [char] ++ " é invalido, insira um valor entre 0 e 9.")
-                    pegaValor char tamTabuleiro
-                  else return (valor-1)
 
 iniciaJogo :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ()
 iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro= do
@@ -333,8 +367,8 @@ iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro= do
            printaTabuleiro tabJogo tamTabuleiro "Tabuleiro do Jogador:"
            printaTabuleiro tabBotJogo tamTabuleiro "Tabuleiro do Bot:"
 
-           let naviosJog = contaNavios tabJogador
-           let naviosBot = contaNavios tabBot
+           let naviosJog = contaNavios tabJogador tamTabuleiro
+           let naviosBot = contaNavios tabBot tamTabuleiro
 
            putStrLn ("Número de navios restantes do jogador: " ++ show naviosJog)
            putStrLn ("Número de navios restantes do bot: " ++ show naviosBot)
@@ -375,11 +409,10 @@ disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro = do
 
 disparaNoTabuleiroJogador :: [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]])
 disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro = do
-    gen <- newStdGen
-    let (valorX, _) = randomR (0, (tamTabuleiro-1)) gen
-    let (valorY, _) = randomR (0, (tamTabuleiro-1)) gen
+    valorX <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
+    valorY <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
 
-    if(tabJogo !! valorX !! valorY `elem` ['X', '*']) then
+    if(tabJogo !! valorX !! valorY `elem` ['X', '*']) then do
       disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro
     else 
       if(tabJogador !! valorX !! valorY == '#') then do
@@ -392,7 +425,7 @@ disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro = do
         let tabJogoFinal = disparaEmNavio tabJogo valorX valorY simbolo
         return (tabJogador, tabJogoFinal)
 
---AJEITAR ESSA FUNÇÃO
+
 disparaEmNavio :: [[Char]] -> Int -> Int -> Char -> [[Char]]
 disparaEmNavio (h:t) valorX valorY simbolo
     | valorX == 0 && t == [] = [concat [take valorY h, [simbolo], drop (valorY + 1) h]]
@@ -400,9 +433,9 @@ disparaEmNavio (h:t) valorX valorY simbolo
     | null t = [h]
     | otherwise = h : disparaEmNavio t (valorX - 1) valorY simbolo
 
-contaNavios :: [[Char]] -> Int
-contaNavios tabuleiro =
-    let navios = [verificaTemNavioNaLinha tabuleiro x y 1 | x <- [0..9], y <- [0..9]]
+contaNavios :: [[Char]] -> Int -> Int
+contaNavios tabuleiro tamTabuleiro =
+    let navios = [verificaTemNavioNaLinha tabuleiro x y 1 | x <- [0..(tamTabuleiro-1)], y <- [0..(tamTabuleiro-1)]]
     in length (filter not navios)
 
 
