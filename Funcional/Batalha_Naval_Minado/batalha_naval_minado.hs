@@ -40,19 +40,30 @@ main = do
             else
               ioError erro
 
--- Função que apresenta uma história introduzindo ao jogo e chama o menu
+---------- INTRODUÇÃO E HISTORIA ----------
+
+-- Função que apresenta uma introdução ao jogo e chama o menu
 inicio_apresentacao :: [Jogador] -> IO()
 inicio_apresentacao dados = do
-                 -- imprimiIntroducao
-                  putStrLn ("\nPressione <Enter> para continuar")
+                  imprimiIntroducao
+                  putStrLn ("\n\nPressione <Enter> para continuar")
                   getChar
                   menu dados;
                   return()
-                  
+
 -- função que irá imprimir a introdução do jogo
+imprimiIntroducao :: IO ()
+imprimiIntroducao = do
+                      hSetBuffering stdout NoBuffering
+                      system "clear" -- limpa a tela
+                      handle <- openFile "./text/introducao.txt" ReadMode
+                      imprimiTextoLentamente handle
+                      hClose handle
+                  
+-- função que irá imprimir a historia do jogo
 imprimiHistoria :: IO Jogadores
 imprimiHistoria = do
-                      hSetBuffering stdout NoBuffering -- disable output buffering
+                      hSetBuffering stdout NoBuffering
                       system "clear" -- limpa a tela
                       handle <- openFile "./text/historia.txt" ReadMode
                       imprimiTextoLentamente handle
@@ -72,6 +83,7 @@ imprimiTextoLentamenteAux (x:xs) = do
   Control.Concurrent.threadDelay 50000
   imprimiTextoLentamenteAux xs
 
+---------- MENU ----------
 
 -- função que exibe o Menu
 menu :: Jogadores -> IO Jogadores
@@ -239,6 +251,8 @@ existeJogador ((Jogador nomeCadastrado pontuacao):xs) nome
                 | (nomeCadastrado == nome) = True
                 | otherwise = existeJogador xs nome
 
+---------- TABULEIRO ----------
+
 -- função para criar a matriz com um tamanho determinado pelo usuário ou com tamanho 10 caso o usuário não redefina o tamanho do tabuleiro
 criaMatriz :: Int -> IO [[Char]]
 criaMatriz n = return $ replicate n (intercalate " " (replicate (n) "~"))
@@ -379,6 +393,8 @@ imprimeLinhas (h:t) numLinha tamTabuleiro = do
     mapM_ (\x -> if x == 'X' then putStr "  X " else if x == '*' then putStr "  * " else if x == '#' then putStr "  # " else if x == 'o' then putStr "  o " else putStr "  ~ ") (take tamTabuleiro h)
     putStr "\n"
     imprimeLinhas t (numLinha + 1) tamTabuleiro
+
+---------- JOGO ----------
 
 -- função responsavel por iniciar a partida com o bot
 iniciaJogoComMaquina :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> String -> Jogadores -> IO Jogadores
