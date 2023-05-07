@@ -158,8 +158,8 @@ prepararJogo dados tamTabuleiro = do
 -- função para manipular a opção escolhida pelo usuário do segundo menu
 executarOpcaoJogo :: Jogadores -> Char -> Int -> IO Jogadores
 executarOpcaoJogo dados '0' tamTabuleiro = menu dados
-executarOpcaoJogo dados '1' tamTabuleiro = doWhile True executaJogoComMaquina dados tamTabuleiro
-executarOpcaoJogo dados '2' tamTabuleiro = menu dados
+executarOpcaoJogo dados '1' tamTabuleiro = doWhile True dados tamTabuleiro
+executarOpcaoJogo dados '2' tamTabuleiro = doWhileJogoCom2 True dados tamTabuleiro
 executarOpcaoJogo dados '3' tamTabuleiro = do
                   system "clear"
                   putStrLn "-------------------- Batalha Naval --------------------"
@@ -169,13 +169,13 @@ executarOpcaoJogo dados '3' tamTabuleiro = do
                   prepararJogo dados op
 
 -- executa um loop do jogo
-doWhile :: Bool -> (function -> IO Jogadores) -> Jogadores -> Int -> IO Jogadores
-doWhile condition function dados tamTabuleiro
+doWhile :: Bool -> Jogadores -> Int -> IO Jogadores
+doWhile condition dados tamTabuleiro
   | condition = do 
                 system "clear"
-                jogador1 <- chamaJogador dados
+                jogador1 <- chamaJogador dados ""
 
-                if(jogador1 == "JogadorNaoExiste") then doWhile True executaJogoComMaquina dados tamTabuleiro
+                if(jogador1 == "JogadorNaoExiste") then doWhile True dados tamTabuleiro
                 else do
                   system "clear"
                   -- Esses são os tabueiros que irão guardar os navios
@@ -186,22 +186,23 @@ doWhile condition function dados tamTabuleiro
                   tabuleiro_Jogador_Aux <- criaMatriz tamTabuleiro
                   tabuleiro_Bot_Aux <- criaMatriz tamTabuleiro
 
-                  tabuleiro_Jogador <- montaTabuleiroJogador tabuleiro_Jogador (round (fromIntegral tamTabuleiro / 2)) tamTabuleiro
+                  tabuleiro_Jogador <- montaTabuleiroJogador tabuleiro_Jogador (round (fromIntegral tamTabuleiro / 2)) tamTabuleiro jogador1
+                  tabuleiro_Jogador <- jogaBombas tabuleiro_Jogador (round (fromIntegral tamTabuleiro / 5)) tamTabuleiro
+                  tabuleiro_Bot <- jogaBombas tabuleiro_Bot (round (fromIntegral tamTabuleiro / 5)) tamTabuleiro
 
-
-                  dadosAtualizado <- iniciaJogo tabuleiro_Jogador tabuleiro_Jogador_Aux tabuleiro_Bot tabuleiro_Bot_Aux tamTabuleiro jogador1 dados
+                  dadosAtualizado <- iniciaJogoComMaquina tabuleiro_Jogador tabuleiro_Jogador_Aux tabuleiro_Bot tabuleiro_Bot_Aux tamTabuleiro jogador1 dados
 
                   putStrLn "\nVocê quer jogar novamente? [1 para sim, outro número para sair]"
                   putStr "\n→ Opção: \n\n"
                   op <- getChar
                   getChar
-                  if(op == '1') then doWhile True executaJogoComMaquina dados tamTabuleiro
-                  else doWhile False executaJogoComMaquina dados tamTabuleiro
+                  if(op == '1') then doWhile True dados tamTabuleiro
+                  else doWhile False dados tamTabuleiro
   | otherwise = menu dados
 
 -- Define um nome para um jogador
-chamaJogador :: Jogadores -> IO String
-chamaJogador dados = do
+chamaJogador :: Jogadores -> String -> IO String
+chamaJogador dados nomeJogador = do
   putStrLn "Você deseja jogar com um jogador cadastrado? (Digite S para sim e N para não)"
   putStr "\n→ Opção: \n\n"
   op <- getChar
@@ -212,6 +213,10 @@ chamaJogador dados = do
     jogador <- getLine
     if not(existeJogador dados jogador) then do
       putStrLn "Esse jogador não existe!"
+      threadDelay 1000000
+      return "JogadorNaoExiste"
+    else if (jogador == nomeJogador) then do
+      putStrLn "Esse jogador ja foi escolhido."
       threadDelay 1000000
       return "JogadorNaoExiste"
     else return jogador
@@ -239,11 +244,11 @@ criaMatrizBot n = do
                   adicionaNavioNoBot tabuleiro_Bot (round (fromIntegral n / 2)) n
 
 -- função que vai permitir ao usuario posicionar seus navios
-montaTabuleiroJogador :: [[Char]] -> Int -> Int -> IO [[Char]]
-montaTabuleiroJogador tabuleiro 1 _ = return tabuleiro
-montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro = do
+montaTabuleiroJogador :: [[Char]] -> Int -> Int -> String -> IO [[Char]]
+montaTabuleiroJogador tabuleiro 1 _ _ = return tabuleiro
+montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador = do
                       system "clear"
-                      printaTabuleiro tabuleiro tamTabuleiro "Esse é o seu tabuleiro:\n"
+                      printaTabuleiro tabuleiro tamTabuleiro ("Esse é o seu tabuleiro " ++ nomeJogador ++ ":\n")
 
                       putStrLn ("\nO navio tem tamanho: " ++ show tamNavio)
                       orientacao <- pegaOrientacaoTabuleiro
@@ -256,24 +261,24 @@ montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro = do
                         if ((valorY + tamNavio - 1) < tamTabuleiro) then
                           if(verificaTemNavioNaLinha tabuleiro valorX valorY tamNavio) then do
                             novoTab <- adicionaNavio tabuleiro valorX valorY tamNavio
-                            montaTabuleiroJogador novoTab (tamNavio-1) tamTabuleiro
+                            montaTabuleiroJogador novoTab (tamNavio-1) tamTabuleiro nomeJogador
                           else do
                             putStrLn "Já tem um navio nesta posicao, insira outro valor novamente."
-                            montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
+                            montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador
                         else do
                           putStrLn "O tamanho do navio esta fora dos limites, escolha outra posicao"
-                          montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
+                          montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador
                       else do
                         if ((valorX + tamNavio - 1) < tamTabuleiro) then
                           if(verificaTemNavioNaLinha (transpose tabuleiro) valorX valorY tamNavio) then do
                             novoTab <- fmap transpose (adicionaNavio (transpose tabuleiro) valorY valorX tamNavio)
-                            montaTabuleiroJogador novoTab (tamNavio-1) tamTabuleiro
+                            montaTabuleiroJogador novoTab (tamNavio-1) tamTabuleiro nomeJogador
                           else do
                             putStrLn "Já tem um navio nesta posicao, insira outro valor novamente."
-                            montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
+                            montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador
                         else do
                           putStrLn "O tamanho do navio esta fora dos limites, escolha outra posicao"
-                          montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro
+                          montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador
 
 -- função para imprimir o tabuleiro
 printaTabuleiro :: [[Char]] -> Int -> String -> IO()
@@ -299,7 +304,7 @@ pegaValor char tamTabuleiro = do
                   putStrLn (char : ": ")
                   valor <- readLn :: IO Int
 
-                  if((valor-1) < 0 || (valor-1) > tamTabuleiro) then do
+                  if((valor-1) < 0 || (valor-1) >= tamTabuleiro) then do
                     putStrLn ("O valor de " ++ [char] ++ " é invalido, insira um valor entre 0 e 9.")
                     pegaValor char tamTabuleiro
                   else return (valor-1)
@@ -313,13 +318,13 @@ adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro = do
                   orientacao <- randomRIO (0, 1) :: IO Int
 
                   if orientacao == 0 then
-                    if ((posI + tamNavio <= 10) && (verificaTemNavioNaLinha tabuleiro posI posJ tamNavio)) then do
+                    if ((posI + tamNavio <= tamTabuleiro) && (verificaTemNavioNaLinha tabuleiro posI posJ tamNavio)) then do
                         tab <- adicionaNavio tabuleiro posI posJ tamNavio
                         adicionaNavioNoBot tab (tamNavio-1) tamTabuleiro
                     else
                       adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro
                   else
-                      if ((posJ + tamNavio <= 10) && (verificaTemNavioNaLinha (transpose tabuleiro) posI posJ tamNavio)) then do
+                      if ((posJ + tamNavio <= tamTabuleiro) && (verificaTemNavioNaLinha (transpose tabuleiro) posI posJ tamNavio)) then do
                           tab <- fmap transpose (adicionaNavio (transpose tabuleiro) posJ posI tamNavio)
                           adicionaNavioNoBot tab (tamNavio-1) tamTabuleiro
                       else
@@ -347,10 +352,6 @@ temNavio :: [Char] -> Bool
 temNavio tab = '#' `elem` tab
 
 
-executaJogoComMaquina :: Jogadores -> IO Jogadores
-executaJogoComMaquina dados = menu dados
-
-
 imprimeTabuleiro :: [[Char]] -> Int -> IO ()
 imprimeTabuleiro tabuleiro tamTabuleiro = do
     putStr "     "
@@ -367,15 +368,13 @@ imprimeLinhas [] _ _ = return ()
 imprimeLinhas (h:t) numLinha tamTabuleiro = do
     putStr (if numLinha < 10 then " " ++ show numLinha else show numLinha)
     putStr " "
-    mapM_ (\x -> if x == 'X' then putStr "  X " else if x == '*' then putStr "  * " else if x == '#' then putStr "  # " else putStr "  ~ ") (take tamTabuleiro h)
+    mapM_ (\x -> if x == 'X' then putStr "  X " else if x == '*' then putStr "  * " else if x == '#' then putStr "  # " else if x == 'o' then putStr "  o " else putStr "  ~ ") (take tamTabuleiro h)
     putStr "\n"
     imprimeLinhas t (numLinha + 1) tamTabuleiro
 
 
-                      
-
-iniciaJogo :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> String -> Jogadores -> IO Jogadores
-iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro nomeJogador dados = do
+iniciaJogoComMaquina :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> String -> Jogadores -> IO Jogadores
+iniciaJogoComMaquina tabJogador tabJogo tabBot tabBotJogo tamTabuleiro nomeJogador dados = do
            system "clear"
            printaTabuleiro tabJogo tamTabuleiro ("Tabuleiro de " ++ nomeJogador ++ ":\n")
            printaTabuleiro tabBotJogo tamTabuleiro "Tabuleiro do Bot:\n"
@@ -391,9 +390,28 @@ iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro nomeJogador dados =
               return dados
            else if (naviosBot == 0) then do
               putStrLn "Você é um verdadeiro almirante! Parabéns pela vitória na batalha naval."
+              atualizaPontuacao dados nomeJogador
+              
+           else do
+              (tabBot_2, tabBotJogo_2) <- disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro
+              (tabJogador_2, tabJogo_2) <- disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro
+
+              iniciaJogoComMaquina tabJogador_2 tabJogo_2 tabBot_2 tabBotJogo_2 tamTabuleiro nomeJogador dados
+  
+-- função que atualiza a pontuação do vencedor
+-- recebe a lista (Jogadores), o nome do vencedor e retorna uma nova lista atualizada
+atualizaPontos :: Jogadores -> String -> Jogadores
+atualizaPontos [] _ = []
+atualizaPontos ((Jogador nome pontuacao):xs) vencedor
+                | (nome == vencedor) = [(Jogador nome (pontuacao + 1))] ++ xs
+                | otherwise = (Jogador nome pontuacao):(atualizaPontos xs vencedor)
+
+
+atualizaPontuacao :: Jogadores -> String -> IO Jogadores
+atualizaPontuacao dados nomeJogador = do 
               -- abre o arquivo para escrita para atualizá-lo
               arq_escrita <- openFile "dados.txt" WriteMode
-              hPutStrLn arq_escrita (show (atualizaPontuacao dados nomeJogador))
+              hPutStrLn arq_escrita (show (atualizaPontos dados nomeJogador))
               hClose arq_escrita
 
               -- abre o arquivo para leitura
@@ -402,26 +420,15 @@ iniciaJogo tabJogador tabJogo tabBot tabBotJogo tamTabuleiro nomeJogador dados =
               hClose arq_leitura
 
               return (read dados_atualizados)
-           else do
-              (tabBot_2, tabBotJogo_2) <- disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro
-              (tabJogador_2, tabJogo_2) <- disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro
 
-              iniciaJogo tabJogador_2 tabJogo_2 tabBot_2 tabBotJogo_2 tamTabuleiro nomeJogador dados
-  
--- função que atualiza a pontuação do vencedor
--- recebe a lista (Jogadores), o nome do vencedor e retorna uma nova lista atualizada
-atualizaPontuacao :: Jogadores -> String -> Jogadores
-atualizaPontuacao ((Jogador nome pontuacao):xs) vencedor
-                | (nome == vencedor) = [(Jogador nome (pontuacao + 1))] ++ xs
-                | otherwise = (Jogador nome pontuacao):(atualizaPontuacao xs vencedor)
-
+-- AJEITAR ESSA FUNÇÃO PARA FAZER FUNCIONAR A PENALIDADE DE BOMBA
 disparaNoTabuleiroBot :: [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]])
 disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro = do
     putStrLn "Escolha as posições de X (de 0 a 9) e as posições Y (de 0 a 9)"
     valorX <- pegaValor 'X' tamTabuleiro
     valorY <- pegaValor 'Y' tamTabuleiro
 
-    if((tabBotJogo !! valorX !! valorY) `elem` ['X', '*']) then do
+    if((tabBotJogo !! valorX !! valorY) `elem` ['X', '*', 'o']) then do
       putStrLn "Voce já disparou nesta posição. Escolha uma outra posicao."
       disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro
     else if((tabBot !! valorX !! valorY) == '#') then do
@@ -430,7 +437,12 @@ disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro = do
       let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
       return (tabBotFinal, tabBotJogoFinal)
-   
+    else if((tabBot !! valorX !! valorY) == 'o') then do
+      putStrLn "Voce acertou uma bomba!"
+      let simbolo = 'o'
+      let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo
+      let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
+      return (tabBotFinal, tabBotJogoFinal)
     else do
       putStrLn "Voce acertou na água!"
       let simbolo = '*'
@@ -489,4 +501,97 @@ obterPontuacao (Jogador _ pontuacao) = pontuacao
 ordenar :: Jogadores -> Jogadores
 ordenar dados = sortBy (compare `on` obterPontuacao) dados
 
+-- executa um loop do jogo
+doWhileJogoCom2 :: Bool -> Jogadores -> Int -> IO Jogadores
+doWhileJogoCom2 condition dados tamTabuleiro
+  | condition = do 
+                system "clear"
+                jogador1 <- chamaJogador dados ""
+                jogador2 <- chamaJogador dados jogador1
 
+                if(jogador1 == "JogadorNaoExiste" || jogador1 == "JogadorNaoExiste") then doWhileJogoCom2 True dados tamTabuleiro
+                else do
+                  system "clear"
+                  -- Esses são os tabueiros que irão guardar os navios
+                  tabuleiro_Jogador1 <- criaMatriz tamTabuleiro
+                  tabuleiro_Jogador2 <- criaMatriz tamTabuleiro
+
+                  -- Esses são os tabuleiro que o usuário irá enxergar durante o jogo
+                  tabuleiro_Jogador1_Aux <- criaMatriz tamTabuleiro
+                  tabuleiro_Jogador2_Aux <- criaMatriz tamTabuleiro
+
+                  tabuleiro_Jogador1 <- montaTabuleiroJogador tabuleiro_Jogador1 (round (fromIntegral tamTabuleiro / 2)) tamTabuleiro jogador1
+                  tabuleiro_Jogador2 <- montaTabuleiroJogador tabuleiro_Jogador2 (round (fromIntegral tamTabuleiro / 2)) tamTabuleiro jogador2
+
+                  -- joga bombas nos tabuleiros
+                  tabuleiro_Jogador1 <- jogaBombas tabuleiro_Jogador1 (round (fromIntegral tamTabuleiro / 5)) tamTabuleiro
+                  tabuleiro_Jogador2 <- jogaBombas tabuleiro_Jogador2 (round (fromIntegral tamTabuleiro / 5)) tamTabuleiro
+
+                  dadosAtualizado <- iniciaJogoComJogadores tabuleiro_Jogador1 tabuleiro_Jogador1_Aux tabuleiro_Jogador2 tabuleiro_Jogador2_Aux tamTabuleiro jogador1 jogador2 dados
+
+                  putStrLn "\nVocê quer jogar novamente? [1 para sim, outro número para sair]"
+                  putStr "\n→ Opção: \n\n"
+                  op <- getChar
+                  getChar
+                  if(op == '1') then doWhileJogoCom2 True dados tamTabuleiro
+                  else doWhileJogoCom2 False dados tamTabuleiro
+  | otherwise = menu dados
+
+
+iniciaJogoComJogadores :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> String -> String-> Jogadores -> IO Jogadores
+iniciaJogoComJogadores tabJogador1 tabJogo1 tabJogador2 tabJogo2 tamTabuleiro nomeJogador1 nomeJogador2 dados = do
+           system "clear"
+           printaTabuleiro tabJogo1 tamTabuleiro ("Tabuleiro de " ++ nomeJogador1 ++ ":\n")
+           printaTabuleiro tabJogo2 tamTabuleiro ("Tabuleiro de " ++ nomeJogador2 ++ ":\n")
+
+           let naviosJog1 = contaNavios tabJogador1 tamTabuleiro
+           let naviosJog2 = contaNavios tabJogador2 tamTabuleiro
+
+           putStrLn ("Número de navios restantes do " ++ nomeJogador1 ++ " :" ++ show naviosJog1)
+           putStrLn ("Número de navios restantes do " ++ nomeJogador2 ++ " :" ++ show naviosJog1)
+
+           if (naviosJog1 == 0) then do
+              putStrLn ("Parabéns! " ++ nomeJogador1 ++ " é o vencedor.")
+              atualizaPontuacao dados nomeJogador1
+           else if (naviosJog2 == 0) then do
+              putStrLn ("Parabéns! " ++ nomeJogador2 ++ " é o vencedor.")
+              atualizaPontuacao dados nomeJogador2
+              
+           else do
+             putStrLn ("É a vez de " ++ nomeJogador1 ++ ":\n")
+             (tabJogador1_2, tabJogo1_2) <- disparaNoTabuleiroBot tabJogador2 tabJogo2 tamTabuleiro
+             system "clear"
+             printaTabuleiro tabJogo1_2 tamTabuleiro ("Tabuleiro de " ++ nomeJogador1 ++ ":\n")
+             printaTabuleiro tabJogo2 tamTabuleiro ("Tabuleiro de " ++ nomeJogador2 ++ ":\n")
+              
+             putStrLn ("É a vez de " ++ nomeJogador2 ++ ":\n")
+             (tabJogador2_2, tabJogo2_2) <- disparaNoTabuleiroBot tabJogador1 tabJogo1 tamTabuleiro
+             system "clear"
+             printaTabuleiro tabJogo1_2 tamTabuleiro ("Tabuleiro de " ++ nomeJogador1 ++ ":\n")
+             printaTabuleiro tabJogo2_2 tamTabuleiro ("Tabuleiro de " ++ nomeJogador2 ++ ":\n")
+
+             iniciaJogoComJogadores tabJogador1_2 tabJogo1_2 tabJogador2_2 tabJogo2_2 tamTabuleiro nomeJogador1 nomeJogador2 dados
+
+
+jogaBombas :: [[Char]] -> Int -> Int -> IO [[Char]]
+jogaBombas tab 0 tamTabuleiro = return tab
+jogaBombas tab qtdBombas tamTabuleiro = do
+  putStrLn "Espalhando bombas ..."
+  posI <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
+  posJ <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
+      
+  if ((posI <= tamTabuleiro) && (posJ <= tamTabuleiro) && (not (verificaTemElemento tab posI posJ))) then do
+    tab_Final <- return (adicionaBomba tab posI posJ 'o')
+    jogaBombas tab_Final (qtdBombas-1) tamTabuleiro
+  else do 
+    jogaBombas tab qtdBombas tamTabuleiro
+
+adicionaBomba :: [[Char]] -> Int -> Int -> Char -> [[Char]]
+adicionaBomba (h:t) valorX valorY simbolo
+    | valorX == 0 && t == [] = [concat [take valorY h, [simbolo], drop (valorY + 1) h]]
+    | valorX == 0 = (take valorY h ++ [simbolo] ++ drop (valorY + 1) h) : t
+    | null t = [h]
+    | otherwise = h : adicionaBomba t (valorX - 1) valorY simbolo
+
+verificaTemElemento :: [[Char]] -> Int -> Int -> Bool
+verificaTemElemento tabuleiro posI posJ = ((tabuleiro !! posI !! posJ) `elem` ['X', '*', 'o'])
