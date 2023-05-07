@@ -50,14 +50,16 @@ inicio_apresentacao dados = do
                   return()
                   
 -- função que irá imprimir a introdução do jogo
-imprimiIntroducao :: IO ()
-imprimiIntroducao = do
+imprimiHistoria :: IO Jogadores
+imprimiHistoria = do
                       hSetBuffering stdout NoBuffering -- disable output buffering
                       system "clear" -- limpa a tela
-                      handle <- openFile "./text/introducao.txt" ReadMode
+                      handle <- openFile "./text/historia.txt" ReadMode
                       imprimiTextoLentamente handle
                       hClose handle
+                      return [] -- retorna uma lista vazia de jogadores
 
+-- função para imprimir lentamente a introdução do jogo
 imprimiTextoLentamente :: Handle -> IO ()
 imprimiTextoLentamente handle = do
   texto <- hGetContents handle
@@ -106,7 +108,11 @@ executarOpcao dados '3' = do
                             putStrLn "\nPressione <Enter> para voltar ao menu..."
                             getChar
                             menu dados
-executarOpcao dados '4' = menu dados
+executarOpcao dados '4' = do
+                            imprimiHistoria
+                            putStrLn "\nPressione <Enter> para voltar ao menu..."
+                            getLine -- Aguarda a entrada do usuário
+                            menu dados
 executarOpcao dados _ = do
                           putStrLn ("\nOpção inválida! Tente novamente...")
                           putStrLn ("\nPressione <Enter> para voltar ao menu")
@@ -209,14 +215,14 @@ chamaJogador dados nomeJogador = do
   getChar
 
   if(op == 'S') then do
-    putStrLn "Digite o nome do primeiro jogador: "
+    putStrLn "\nDigite o nome do primeiro jogador: \n"
     jogador <- getLine
     if not(existeJogador dados jogador) then do
-      putStrLn "Esse jogador não existe!"
+      putStrLn "\nEsse jogador não existe!"
       threadDelay 1000000
       return "JogadorNaoExiste"
     else if (jogador == nomeJogador) then do
-      putStrLn "Esse jogador ja foi escolhido."
+      putStrLn "\nEsse jogador ja foi escolhido."
       threadDelay 1000000
       return "JogadorNaoExiste"
     else return jogador
@@ -250,7 +256,7 @@ montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador = do
                       system "clear"
                       printaTabuleiro tabuleiro tamTabuleiro ("Esse é o seu tabuleiro " ++ nomeJogador ++ ":\n")
 
-                      putStrLn ("\nO navio tem tamanho: " ++ show tamNavio)
+                      putStrLn ("\nO navio tem tamanho: "  ++ show tamNavio)
                       orientacao <- pegaOrientacaoTabuleiro
                       
                       putStrLn ("Insira as posicoes X (de 1 a " ++ show tamTabuleiro ++ ") Y (de 1 a " ++ show tamTabuleiro ++ ") para posicionar seu navio.")
@@ -289,12 +295,12 @@ printaTabuleiro tabuleiro tam msg = do
 -- função para pegar a orientação em que o usuário quer posicionar os navios
 pegaOrientacaoTabuleiro :: IO Char
 pegaOrientacaoTabuleiro = do
-      putStrLn "Em que orientação você que posicioná-lo? (Digite H para horizontal e V para vertical) "
+      putStrLn "\nEm que orientação você que posicioná-lo? (Digite H para horizontal e V para vertical) "
       ori <- getChar
       getChar
 
       if ((ori /= 'H') && (ori /= 'V')) then do
-        putStrLn "O valor digitado é invalido"
+        putStrLn "\nO valor digitado é invalido"
         pegaOrientacaoTabuleiro
       else return ori
 
@@ -309,7 +315,7 @@ pegaValor char tamTabuleiro = do
                     pegaValor char tamTabuleiro
                   else return (valor-1)
 
-
+-- função que adiciona os navios para o bot
 adicionaNavioNoBot :: [String] -> Int -> Int -> IO [String]
 adicionaNavioNoBot tabuleiro 1 _ = return tabuleiro
 adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro = do
@@ -335,7 +341,7 @@ adicionaNavio :: [[Char]] -> Int -> Int -> Int -> IO [[Char]]
 adicionaNavio tabuleiro posI posJ tamNavio = return (adicionaNavioNaLinha tabuleiro tamNavio posI posJ)
 
 
-
+-- função para add o navio
 adicionaNavioNaLinha :: [[Char]] -> Int -> Int -> Int -> [[Char]]
 adicionaNavioNaLinha (h:t) tamNavio posI posJ
     | posI == 0 && t == [] = [concat [take posJ h, replicate tamNavio '#', drop (posJ + tamNavio) h]]
@@ -343,6 +349,7 @@ adicionaNavioNaLinha (h:t) tamNavio posI posJ
     | null t = [h]
     | otherwise = h : adicionaNavioNaLinha t tamNavio (posI - 1) posJ
 
+-- função que verifica se há navio na coordenada
 verificaTemNavioNaLinha :: [[Char]] -> Int -> Int -> Int -> Bool
 verificaTemNavioNaLinha tabuleiro posI posJ tamNavio =
     not (temNavio(take tamNavio (drop posJ (tabuleiro !! posI))))
@@ -351,7 +358,7 @@ verificaTemNavioNaLinha tabuleiro posI posJ tamNavio =
 temNavio :: [Char] -> Bool
 temNavio tab = '#' `elem` tab
 
-
+-- função para imprimir no terminal o tabuleiro
 imprimeTabuleiro :: [[Char]] -> Int -> IO ()
 imprimeTabuleiro tabuleiro tamTabuleiro = do
     putStr "     "
@@ -363,6 +370,7 @@ imprimeTabuleiro tabuleiro tamTabuleiro = do
     putStr "\n"
     imprimeLinhas tabuleiro 1 tamTabuleiro
 
+
 imprimeLinhas :: [[Char]] -> Int -> Int -> IO ()
 imprimeLinhas [] _ _ = return ()
 imprimeLinhas (h:t) numLinha tamTabuleiro = do
@@ -372,7 +380,7 @@ imprimeLinhas (h:t) numLinha tamTabuleiro = do
     putStr "\n"
     imprimeLinhas t (numLinha + 1) tamTabuleiro
 
-
+-- função responsavel por iniciar a partida com o bot
 iniciaJogoComMaquina :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> String -> Jogadores -> IO Jogadores
 iniciaJogoComMaquina tabJogador tabJogo tabBot tabBotJogo tamTabuleiro nomeJogador dados = do
            system "clear"
@@ -468,7 +476,7 @@ disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro = do
         let tabJogoFinal = disparaEmNavio tabJogo valorX valorY simbolo
         return (tabJogador, tabJogoFinal)
 
-
+-- função para ataques em navios
 disparaEmNavio :: [[Char]] -> Int -> Int -> Char -> [[Char]]
 disparaEmNavio (h:t) valorX valorY simbolo
     | valorX == 0 && t == [] = [concat [take valorY h, [simbolo], drop (valorY + 1) h]]
@@ -476,6 +484,7 @@ disparaEmNavio (h:t) valorX valorY simbolo
     | null t = [h]
     | otherwise = h : disparaEmNavio t (valorX - 1) valorY simbolo
 
+-- função para contagem de navios no tabuleiro
 contaNavios :: [[Char]] -> Int -> Int
 contaNavios tabuleiro tamTabuleiro =
     let navios = [verificaTemNavioNaLinha tabuleiro x y 1 | x <- [0..(tamTabuleiro-1)], y <- [0..(tamTabuleiro-1)]]
@@ -537,7 +546,7 @@ doWhileJogoCom2 condition dados tamTabuleiro
                   else doWhileJogoCom2 False dados tamTabuleiro
   | otherwise = menu dados
 
-
+-- função para iniciar partida com outro jogador
 iniciaJogoComJogadores :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> String -> String-> Jogadores -> IO Jogadores
 iniciaJogoComJogadores tabJogador1 tabJogo1 tabJogador2 tabJogo2 tamTabuleiro nomeJogador1 nomeJogador2 dados = do
            system "clear"
@@ -572,7 +581,7 @@ iniciaJogoComJogadores tabJogador1 tabJogo1 tabJogador2 tabJogo2 tamTabuleiro no
 
              iniciaJogoComJogadores tabJogador1_2 tabJogo1_2 tabJogador2_2 tabJogo2_2 tamTabuleiro nomeJogador1 nomeJogador2 dados
 
-
+-- função que gera bombas aleatoriamente no tabuleiro
 jogaBombas :: [[Char]] -> Int -> Int -> IO [[Char]]
 jogaBombas tab 0 tamTabuleiro = return tab
 jogaBombas tab qtdBombas tamTabuleiro = do
