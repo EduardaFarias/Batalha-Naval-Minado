@@ -207,9 +207,11 @@ doWhile condition dados tamTabuleiro
                   tabuleiro_Jogador <- montaTabuleiroJogador tabuleiro_Jogador (round (fromIntegral tamTabuleiro / 2)) tamTabuleiro jogador1
                   tabuleiro_Jogador <- jogaBombas tabuleiro_Jogador (round (fromIntegral tamTabuleiro / 5)) tamTabuleiro
                   tabuleiro_Bot <- jogaBombas tabuleiro_Bot (round (fromIntegral tamTabuleiro / 5)) tamTabuleiro
-
+                  tabuleiro_Jogador <- jogaBombasBonus tabuleiro_Jogador (round (fromIntegral tamTabuleiro / 5)) tamTabuleiro
+                  tabuleiro_Bot <- jogaBombasBonus tabuleiro_Bot (round (fromIntegral tamTabuleiro / 5)) tamTabuleiro
+                  
                   dadosAtualizado <- iniciaJogoComMaquina tabuleiro_Jogador tabuleiro_Jogador_Aux tabuleiro_Bot tabuleiro_Bot_Aux tamTabuleiro jogador1 dados
-
+                  
                   putStrLn "\nVocê quer jogar novamente? [1 para sim, outro número para sair]"
                   putStr "\n→ Opção: \n\n"
                   op <- getChar
@@ -395,7 +397,7 @@ imprimeLinhas [] _ _ = return ()
 imprimeLinhas (h:t) numLinha tamTabuleiro = do
     putStr (if numLinha < 10 then " " ++ show numLinha else show numLinha)
     putStr " "
-    mapM_ (\x -> if x == 'X' then putStr "  X " else if x == '*' then putStr "  * " else if x == '#' then putStr "  # " else if x == 'o' then putStr "  o " else putStr "  ~ ") (take tamTabuleiro h)
+    mapM_ (\x -> if x == 'X' then putStr "  X " else if x == '*' then putStr "  * " else if x == '#' then putStr "  # " else if x == 'o' then putStr "  o " else if x == '^' then putStr "  ^ " else putStr "  ~ ") (take tamTabuleiro h)
     putStr "\n"
     imprimeLinhas t (numLinha + 1) tamTabuleiro
 
@@ -469,6 +471,12 @@ disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro = do
     else if((tabBot !! valorX !! valorY) == 'o') then do
       putStrLn "Voce acertou uma bomba!"
       let simbolo = 'o'
+      let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo
+      let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
+      return (tabBotFinal, tabBotJogoFinal)
+    else if((tabBot !! valorX !! valorY) == '^') then do
+      putStrLn "Voce acertou uma bomba bonus!"
+      let simbolo = '^'
       let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
       return (tabBotFinal, tabBotJogoFinal)
@@ -556,6 +564,8 @@ doWhileJogoCom2 condition dados tamTabuleiro
                   -- joga bombas nos tabuleiros
                   tabuleiro_Jogador1 <- jogaBombas tabuleiro_Jogador1 (round (fromIntegral tamTabuleiro / 5)) tamTabuleiro
                   tabuleiro_Jogador2 <- jogaBombas tabuleiro_Jogador2 (round (fromIntegral tamTabuleiro / 5)) tamTabuleiro
+                  tabuleiro_Jogador1 <- jogaBombasBonus tabuleiro_Jogador1 (round (fromIntegral tamTabuleiro / 5)) tamTabuleiro
+                  tabuleiro_Jogador2 <- jogaBombasBonus tabuleiro_Jogador2 (round (fromIntegral tamTabuleiro / 5)) tamTabuleiro
 
                   dadosAtualizado <- iniciaJogoComJogadores tabuleiro_Jogador1 tabuleiro_Jogador1_Aux tabuleiro_Jogador2 tabuleiro_Jogador2_Aux tamTabuleiro jogador1 jogador2 dados
 
@@ -626,7 +636,7 @@ adicionaBomba (h:t) valorX valorY simbolo
     | otherwise = h : adicionaBomba t (valorX - 1) valorY simbolo
 
 verificaTemElemento :: [[Char]] -> Int -> Int -> Bool
-verificaTemElemento tabuleiro posI posJ = ((tabuleiro !! posI !! posJ) `elem` ['X', '*', 'o', '#'])
+verificaTemElemento tabuleiro posI posJ = ((tabuleiro !! posI !! posJ) `elem` ['X', '*', 'o', '#', '^'])
 
 verificaPosicaoValida :: [[Char]] -> Int -> Int -> Bool
 verificaPosicaoValida tab posI posJ = 
@@ -642,4 +652,19 @@ temBombaAdjacente tab posI posJ =
   (((posJ-1) >= 0 && verificaTemElemento tab posI (posJ-1))) || -- verifica a posição da esquerda
   ((posI+1) < length tab && verificaTemElemento tab (posI+1) posJ) || -- verifica a posição de baixo
   (((posJ+1) < length (head tab) && verificaTemElemento tab posI (posJ+1)))
-  
+
+
+jogaBombasBonus :: [[Char]] -> Int -> Int -> IO [[Char]]
+jogaBombasBonus tab 0 tamTabuleiro = return tab
+jogaBombasBonus tab qtdBombas tamTabuleiro = do
+  putStrLn "Espalhando bombas bônus..."
+  posI <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
+  posJ <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
+      
+  putStrLn (show posI ++ " " ++ show posJ)
+
+  if (verificaPosicaoValida tab posI posJ) then do
+    tab_Final <- return (adicionaBomba tab posI posJ '^')
+    jogaBombasBonus tab_Final (qtdBombas-1) tamTabuleiro
+  else do 
+    jogaBombasBonus tab qtdBombas tamTabuleiro
