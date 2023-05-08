@@ -6,6 +6,8 @@ import System.Process
 import Data.List
 import System.Random
 import Data.Function
+import Data.Maybe (fromJust)
+
 
 import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
 
@@ -216,8 +218,8 @@ doWhile condition dados tamTabuleiro
                   putStr "\n→ Opção: \n\n"
                   op <- getChar
                   getChar
-                  if(op == '1') then doWhile True dados tamTabuleiro
-                  else doWhile False dados tamTabuleiro
+                  if(op == '1') then doWhile True dadosAtualizado tamTabuleiro
+                  else doWhile False dadosAtualizado tamTabuleiro
   | otherwise = menu dados
 
 -- Define um nome para um jogador
@@ -240,7 +242,9 @@ chamaJogador dados nomeJogador = do
       threadDelay 1000000
       return "JogadorNaoExiste"
     else return jogador
-  else if op == 'N' then return "Jogador 1"
+  else if op == 'N' then do 
+    if (nomeJogador == "Jogador 1") then return "Jogador 2"
+    else return "Jogador 1"
   else do
     putStrLn "Opção Inválida"
     threadDelay 1000000
@@ -406,7 +410,8 @@ imprimeLinhas (h:t) numLinha tamTabuleiro = do
 -- função responsavel por iniciar a partida com o bot
 iniciaJogoComMaquina :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> String -> Jogadores -> IO Jogadores
 iniciaJogoComMaquina tabJogador tabJogo tabBot tabBotJogo tamTabuleiro nomeJogador dados = do
-           system "clear"
+          -- system "clear"
+           
            printaTabuleiro tabJogo tamTabuleiro ("Tabuleiro de " ++ nomeJogador ++ ":\n")
            printaTabuleiro tabBotJogo tamTabuleiro "Tabuleiro do Bot:\n"
 
@@ -424,8 +429,8 @@ iniciaJogoComMaquina tabJogador tabJogo tabBot tabBotJogo tamTabuleiro nomeJogad
               atualizaPontuacao dados nomeJogador
               
            else do
-              (tabBot_2, tabBotJogo_2) <- disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro
-              (tabJogador_2, tabJogo_2) <- disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro
+              (tabBot_2, tabBotJogo_2, tabJogador2, tabJogo2) <- disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogo tamTabuleiro
+              (tabJogador_2, tabJogo_2, tabBot_2, tabBotJogo_2) <- disparaNoTabuleiroJogador tabJogador2 tabJogo2 tabBot_2 tabBotJogo_2 tamTabuleiro
 
               iniciaJogoComMaquina tabJogador_2 tabJogo_2 tabBot_2 tabBotJogo_2 tamTabuleiro nomeJogador dados
   
@@ -441,69 +446,113 @@ atualizaPontos ((Jogador nome pontuacao):xs) vencedor
 atualizaPontuacao :: Jogadores -> String -> IO Jogadores
 atualizaPontuacao dados nomeJogador = do 
               -- abre o arquivo para escrita para atualizá-lo
-              arq_escrita <- openFile "dados.txt" WriteMode
+              arq_escrita <- openFile "./text/dados.txt" WriteMode
               hPutStrLn arq_escrita (show (atualizaPontos dados nomeJogador))
               hClose arq_escrita
 
               -- abre o arquivo para leitura
-              arq_leitura <- openFile "dados.txt" ReadMode
+              arq_leitura <- openFile "./text/dados.txt" ReadMode
               dados_atualizados <- hGetLine arq_leitura
               hClose arq_leitura
 
               return (read dados_atualizados)
 
--- AJEITAR ESSA FUNÇÃO PARA FAZER FUNCIONAR A PENALIDADE DE BOMBA
-disparaNoTabuleiroBot :: [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]])
-disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro = do
+
+disparaNoTabuleiroBot :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]], [[Char]], [[Char]])
+disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro = do
     putStrLn "Escolha as posições de X (de 0 a 9) e as posições Y (de 0 a 9)"
     valorX <- pegaValor 'X' tamTabuleiro
     valorY <- pegaValor 'Y' tamTabuleiro
 
-    if((tabBotJogo !! valorX !! valorY) `elem` ['X', '*', 'o']) then do
+    if((tabBotJogo !! valorX !! valorY) `elem` ['X', '*', 'o', '^']) then do
       putStrLn "Voce já disparou nesta posição. Escolha uma outra posicao."
-      disparaNoTabuleiroBot tabBot tabBotJogo tamTabuleiro
+      disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro
     else if((tabBot !! valorX !! valorY) == '#') then do
       putStrLn "Voce acertou um navio!"
       let simbolo = 'X'
       let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
-      return (tabBotFinal, tabBotJogoFinal)
+      return (tabBotFinal, tabBotJogoFinal, tabJogador, tabJogadorJogo)
     else if((tabBot !! valorX !! valorY) == 'o') then do
       putStrLn "Voce acertou uma bomba!"
-      let simbolo = 'o'
-      let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo
-      let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
-      return (tabBotFinal, tabBotJogoFinal)
+      let simbolo = 'X'
+      let (posI, posJ) = procuraNaMatriz '#' tabJogador
+
+      let tabJogadorFinal = disparaEmNavio tabJogador posI posJ simbolo
+      let tabJogadorJogoFinal = disparaEmNavio tabJogadorJogo posI posJ simbolo
+
+      let simbolo2 = 'o'
+      let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo2
+      let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo2
+      return (tabBotFinal, tabBotJogoFinal, tabJogadorFinal, tabJogadorJogoFinal)
+    
     else if((tabBot !! valorX !! valorY) == '^') then do
       putStrLn "Voce acertou uma bomba bonus!"
-      let simbolo = '^'
-      let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo
-      let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
-      return (tabBotFinal, tabBotJogoFinal)
+      let simbolo = 'X'
+
+      let (posI, posJ) = procuraNaMatriz '#' tabBot
+      let tabBot2 = disparaEmNavio tabBot posI posJ simbolo
+      let tabBotJogo2 = disparaEmNavio tabBotJogo posI posJ simbolo
+
+      let simbolo2 = '^'
+      let tabBotFinal = disparaEmNavio tabBot2 valorX valorY simbolo2
+      let tabBotJogoFinal = disparaEmNavio tabBotJogo2 valorX valorY simbolo2
+      return (tabBotFinal, tabBotJogoFinal, tabJogador, tabJogadorJogo)
     else do
       putStrLn "Voce acertou na água!"
       let simbolo = '*'
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
-      return (tabBot, tabBotJogoFinal)
+      return (tabBot, tabBotJogoFinal, tabJogador, tabJogadorJogo)
 
+procuraNaMatriz :: Char -> [[Char]] -> (Int, Int)
+procuraNaMatriz c mat = case findIndex (elem c) mat of
+    Nothing -> (-1, -1)
+    Just i -> case findIndex (== c) (mat !! i) of
+        Nothing -> (-1, -1)
+        Just j -> (i, j)
 
-disparaNoTabuleiroJogador :: [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]])
-disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro = do
+disparaNoTabuleiroJogador :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]], [[Char]], [[Char]])
+disparaNoTabuleiroJogador tabJogador tabJogo tabBot tabBotJogo tamTabuleiro = do
     valorX <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
     valorY <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
 
-    if(tabJogo !! valorX !! valorY `elem` ['X', '*']) then do
-      disparaNoTabuleiroJogador tabJogador tabJogo tamTabuleiro
-    else 
-      if(tabJogador !! valorX !! valorY == '#') then do
+    putStrLn ("O valor de x e y é : "++ show valorX ++ " " ++ show valorY)
+
+    if(tabJogo !! valorX !! valorY `elem` ['X', '*', 'o', '^']) then do
+      disparaNoTabuleiroJogador tabJogador tabJogo tabBot tabBotJogo tamTabuleiro
+    else if(tabJogador !! valorX !! valorY == '#') then do
         let simbolo = 'X'
         let tabJogadorFinal = disparaEmNavio tabJogador valorX valorY simbolo
         let tabJogoFinal = disparaEmNavio tabJogo valorX valorY simbolo
-        return (tabJogadorFinal, tabJogoFinal)
-      else do
-        let simbolo = '*'
-        let tabJogoFinal = disparaEmNavio tabJogo valorX valorY simbolo
-        return (tabJogador, tabJogoFinal)
+        return (tabJogadorFinal, tabJogoFinal, tabBot, tabBotJogo)
+    else if((tabJogador !! valorX !! valorY) == 'o') then do
+      let simbolo = 'X'
+      let (posI, posJ) = procuraNaMatriz '#' tabBot
+
+      let tabBotFinal = disparaEmNavio tabBot posI posJ simbolo
+      let tabBotJogoFinal = disparaEmNavio tabBotJogo posI posJ simbolo
+
+      let simbolo2 = 'o'
+      let tabJogadorFinal = disparaEmNavio tabJogador valorX valorY simbolo2
+      let tabJogadorJogoFinal = disparaEmNavio tabJogo valorX valorY simbolo2
+      return (tabJogadorFinal, tabJogadorJogoFinal, tabBotFinal, tabBotJogoFinal)
+    
+    else if((tabJogador !! valorX !! valorY) == '^') then do
+      let simbolo = 'X'
+
+      let (posI, posJ) = procuraNaMatriz '#' tabJogador
+      let tabJogador2 = disparaEmNavio tabJogador posI posJ simbolo
+      let tabJogo2 = disparaEmNavio tabJogo posI posJ simbolo
+
+      let simbolo2 = '^'
+      let tabJogadorFinal = disparaEmNavio tabJogo2 valorX valorY simbolo2
+      let tabJogoFinal = disparaEmNavio tabJogador2 valorX valorY simbolo2
+      return (tabJogadorFinal, tabJogoFinal, tabBot, tabBotJogo)
+    
+    else do
+      let simbolo = '*'
+      let tabJogoFinal = disparaEmNavio tabJogo valorX valorY simbolo
+      return (tabJogador, tabJogoFinal, tabBot, tabBotJogo)
 
 -- função para ataques em navios
 disparaEmNavio :: [[Char]] -> Int -> Int -> Char -> [[Char]]
@@ -547,7 +596,7 @@ doWhileJogoCom2 condition dados tamTabuleiro
                 jogador1 <- chamaJogador dados ""
                 jogador2 <- chamaJogador dados jogador1
 
-                if(jogador1 == "JogadorNaoExiste" || jogador1 == "JogadorNaoExiste") then doWhileJogoCom2 True dados tamTabuleiro
+                if(jogador1 == "JogadorNaoExiste" || jogador2 == "JogadorNaoExiste") then doWhileJogoCom2 True dados tamTabuleiro
                 else do
                   system "clear"
                   -- Esses são os tabueiros que irão guardar os navios
@@ -573,8 +622,8 @@ doWhileJogoCom2 condition dados tamTabuleiro
                   putStr "\n→ Opção: \n\n"
                   op <- getChar
                   getChar
-                  if(op == '1') then doWhileJogoCom2 True dados tamTabuleiro
-                  else doWhileJogoCom2 False dados tamTabuleiro
+                  if(op == '1') then doWhileJogoCom2 True dadosAtualizado tamTabuleiro
+                  else doWhileJogoCom2 False dadosAtualizado tamTabuleiro
   | otherwise = menu dados
 
 -- função para iniciar partida com outro jogador
@@ -588,29 +637,30 @@ iniciaJogoComJogadores tabJogador1 tabJogo1 tabJogador2 tabJogo2 tamTabuleiro no
            let naviosJog2 = contaNavios tabJogador2 tamTabuleiro
 
            putStrLn ("Número de navios restantes do " ++ nomeJogador1 ++ " :" ++ show naviosJog1)
-           putStrLn ("Número de navios restantes do " ++ nomeJogador2 ++ " :" ++ show naviosJog1)
+           putStrLn ("Número de navios restantes do " ++ nomeJogador2 ++ " :" ++ show naviosJog2)
 
            if (naviosJog1 == 0) then do
-              putStrLn ("Parabéns! " ++ nomeJogador1 ++ " é o vencedor.")
-              atualizaPontuacao dados nomeJogador1
-           else if (naviosJog2 == 0) then do
               putStrLn ("Parabéns! " ++ nomeJogador2 ++ " é o vencedor.")
               atualizaPontuacao dados nomeJogador2
+           else if (naviosJog2 == 0) then do
+              putStrLn ("Parabéns! " ++ nomeJogador1 ++ " é o vencedor.")
+              atualizaPontuacao dados nomeJogador1
               
            else do
              putStrLn ("É a vez de " ++ nomeJogador1 ++ ":\n")
-             (tabJogador1_2, tabJogo1_2) <- disparaNoTabuleiroBot tabJogador2 tabJogo2 tamTabuleiro
+             (tabJogador2, tabJogo2, tabJogador1, tabJogo1) <- disparaNoTabuleiroBot tabJogador2 tabJogo2 tabJogador1 tabJogo1 tamTabuleiro
              system "clear"
-             printaTabuleiro tabJogo1_2 tamTabuleiro ("Tabuleiro de " ++ nomeJogador1 ++ ":\n")
+             printaTabuleiro tabJogo1 tamTabuleiro ("Tabuleiro de " ++ nomeJogador1 ++ ":\n")
              printaTabuleiro tabJogo2 tamTabuleiro ("Tabuleiro de " ++ nomeJogador2 ++ ":\n")
               
              putStrLn ("É a vez de " ++ nomeJogador2 ++ ":\n")
-             (tabJogador2_2, tabJogo2_2) <- disparaNoTabuleiroBot tabJogador1 tabJogo1 tamTabuleiro
+             (tabJogador1, tabJogo1, tabJogador2, tabJogo2) <- disparaNoTabuleiroBot tabJogador1 tabJogo1 tabJogador2 tabJogo2 tamTabuleiro
              system "clear"
-             printaTabuleiro tabJogo1_2 tamTabuleiro ("Tabuleiro de " ++ nomeJogador1 ++ ":\n")
-             printaTabuleiro tabJogo2_2 tamTabuleiro ("Tabuleiro de " ++ nomeJogador2 ++ ":\n")
+             printaTabuleiro tabJogo1 tamTabuleiro ("Tabuleiro de " ++ nomeJogador1 ++ ":\n")
+             printaTabuleiro tabJogo2 tamTabuleiro ("Tabuleiro de " ++ nomeJogador2 ++ ":\n")
 
-             iniciaJogoComJogadores tabJogador1_2 tabJogo1_2 tabJogador2_2 tabJogo2_2 tamTabuleiro nomeJogador1 nomeJogador2 dados
+             iniciaJogoComJogadores tabJogador1 tabJogo1 tabJogador2 tabJogo2 tamTabuleiro nomeJogador1 nomeJogador2 dados
+
 
 -- função que gera bombas aleatoriamente no tabuleiro
 jogaBombas :: [[Char]] -> Int -> Int -> IO [[Char]]
@@ -668,3 +718,5 @@ jogaBombasBonus tab qtdBombas tamTabuleiro = do
     jogaBombasBonus tab_Final (qtdBombas-1) tamTabuleiro
   else do 
     jogaBombasBonus tab qtdBombas tamTabuleiro
+
+
