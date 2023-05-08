@@ -290,7 +290,7 @@ montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador = do
                           montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador
                       else do
                         if ((valorX + tamNavio - 1) < tamTabuleiro) then
-                          if(verificaTemNavioNaLinha (transpose tabuleiro) valorX valorY tamNavio) then do
+                          if(verificaTemNavioNaLinha (transpose tabuleiro) valorY valorX tamNavio) then do
                             novoTab <- fmap transpose (adicionaNavio (transpose tabuleiro) valorY valorX tamNavio)
                             montaTabuleiroJogador novoTab (tamNavio-1) tamTabuleiro nomeJogador
                           else do
@@ -337,19 +337,24 @@ adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro = do
                   posJ <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
                   orientacao <- randomRIO (0, 1) :: IO Int
 
-                  if orientacao == 0 then
-                    if ((posI + tamNavio <= tamTabuleiro) && (verificaTemNavioNaLinha tabuleiro posI posJ tamNavio)) then do
+                  if (orientacao == 0) then
+                    if ((posJ + tamNavio - 1) < tamTabuleiro) then
+                      if(verificaTemNavioNaLinha tabuleiro posI posJ tamNavio) then do
                         tab <- adicionaNavio tabuleiro posI posJ tamNavio
                         adicionaNavioNoBot tab (tamNavio-1) tamTabuleiro
+                      else do
+                        adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro
                     else
                       adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro
-                  else
-                      if ((posJ + tamNavio <= tamTabuleiro) && (verificaTemNavioNaLinha (transpose tabuleiro) posI posJ tamNavio)) then do
-                          tab <- fmap transpose (adicionaNavio (transpose tabuleiro) posJ posI tamNavio)
-                          adicionaNavioNoBot tab (tamNavio-1) tamTabuleiro
+                  else do
+                    if ((posI + tamNavio - 1) < tamTabuleiro) then
+                      if(verificaTemNavioNaLinha (transpose tabuleiro) posJ posI tamNavio) then do
+                        tab <- fmap transpose (adicionaNavio (transpose tabuleiro) posJ posI tamNavio)
+                        adicionaNavioNoBot tab (tamNavio-1) tamTabuleiro
                       else
-                          adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro
-
+                        adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro
+                    else
+                      adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro
 
 adicionaNavio :: [[Char]] -> Int -> Int -> Int -> IO [[Char]]
 adicionaNavio tabuleiro posI posJ tamNavio = return (adicionaNavioNaLinha tabuleiro tamNavio posI posJ)
@@ -366,7 +371,7 @@ adicionaNavioNaLinha (h:t) tamNavio posI posJ
 -- função que verifica se há navio na coordenada
 verificaTemNavioNaLinha :: [[Char]] -> Int -> Int -> Int -> Bool
 verificaTemNavioNaLinha tabuleiro posI posJ tamNavio =
-    not (temNavio(take tamNavio (drop posJ (tabuleiro !! posI))))
+    not (temNavio (take tamNavio (drop posJ (tabuleiro !! posI))))
 
 
 temNavio :: [Char] -> Bool
@@ -605,7 +610,9 @@ jogaBombas tab qtdBombas tamTabuleiro = do
   posI <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
   posJ <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
       
-  if ((posI <= tamTabuleiro) && (posJ <= tamTabuleiro) && (not (verificaTemElemento tab posI posJ))) then do
+  putStrLn (show posI ++ " " ++ show posJ)
+
+  if (verificaPosicaoValida tab posI posJ) then do
     tab_Final <- return (adicionaBomba tab posI posJ 'o')
     jogaBombas tab_Final (qtdBombas-1) tamTabuleiro
   else do 
@@ -619,4 +626,20 @@ adicionaBomba (h:t) valorX valorY simbolo
     | otherwise = h : adicionaBomba t (valorX - 1) valorY simbolo
 
 verificaTemElemento :: [[Char]] -> Int -> Int -> Bool
-verificaTemElemento tabuleiro posI posJ = ((tabuleiro !! posI !! posJ) `elem` ['X', '*', 'o'])
+verificaTemElemento tabuleiro posI posJ = ((tabuleiro !! posI !! posJ) `elem` ['X', '*', 'o', '#'])
+
+verificaPosicaoValida :: [[Char]] -> Int -> Int -> Bool
+verificaPosicaoValida tab posI posJ = 
+ (posI < length tab &&
+ posJ < length tab &&
+ not (verificaTemElemento tab posI posJ) &&
+ not (temBombaAdjacente tab posI posJ))
+
+
+temBombaAdjacente :: [[Char]] -> Int -> Int -> Bool
+temBombaAdjacente tab posI posJ =
+  (((posI-1) >= 0 && verificaTemElemento tab (posI-1) posJ)) || -- verifica a posição de cima
+  (((posJ-1) >= 0 && verificaTemElemento tab posI (posJ-1))) || -- verifica a posição da esquerda
+  ((posI+1) < length tab && verificaTemElemento tab (posI+1) posJ) || -- verifica a posição de baixo
+  (((posJ+1) < length (head tab) && verificaTemElemento tab posI (posJ+1)))
+  
