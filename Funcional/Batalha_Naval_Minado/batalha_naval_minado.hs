@@ -16,8 +16,8 @@ import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
     Símbolos:
     "~" -> Água
     "#" -> Navio
-    "o" -> Bomba 
-    "^" -> Bomba Bônus 
+    "💣" -> Bomba 
+    "🌀" -> Bomba Bônus 
 --}
 
 -- definição dos tipos de dados
@@ -803,3 +803,4 @@ bomba = '\x1f4a3' -- caracter unicode de uma bomba: 💣
 
 redemoinho :: Char
 redemoinho = '\x1f300'
+
