@@ -193,7 +193,7 @@ doWhile :: Bool -> Jogadores -> Int -> IO Jogadores
 doWhile condition dados tamTabuleiro
   | condition = do 
                 system "clear"
-                jogador1 <- chamaJogador dados ""
+                jogador1 <- chamaJogador dados "" "1"
 
                 if(jogador1 == "JogadorNaoExiste") then doWhile True dados tamTabuleiro
                 else do
@@ -223,12 +223,18 @@ doWhile condition dados tamTabuleiro
   | otherwise = menu dados
 
 -- Define um nome para um jogador
-chamaJogador :: Jogadores -> String -> IO String
-chamaJogador dados nomeJogador = do
-  putStrLn "Você deseja jogar com um jogador cadastrado? (Digite S para sim e N para não)"
+chamaJogador :: Jogadores -> String -> String -> IO String
+chamaJogador dados nomeJogador jogadorNum = do
+  let mensagem = case jogadorNum of
+                   "1" -> "Você deseja jogar com o primeiro jogador já cadastrado? (Digite S para sim e N para não)"
+                   "2" -> "Você deseja jogar com o segundo jogador já cadastrado? (Digite S para sim e N para não)"
+                   _   -> "Opção inválida"
+
+  putStrLn mensagem
   putStr "\n→ Opção: \n\n"
   op <- getChar
   getChar
+
 
   if(op == 'S') then do
     putStrLn "\nDigite o nome do primeiro jogador: \n"
@@ -593,8 +599,8 @@ doWhileJogoCom2 :: Bool -> Jogadores -> Int -> IO Jogadores
 doWhileJogoCom2 condition dados tamTabuleiro
   | condition = do 
                 system "clear"
-                jogador1 <- chamaJogador dados ""
-                jogador2 <- chamaJogador dados jogador1
+                jogador1 <- chamaJogador dados "" "1"
+                jogador2 <- chamaJogador dados jogador1 "2"
 
                 if(jogador1 == "JogadorNaoExiste" || jogador2 == "JogadorNaoExiste") then doWhileJogoCom2 True dados tamTabuleiro
                 else do
