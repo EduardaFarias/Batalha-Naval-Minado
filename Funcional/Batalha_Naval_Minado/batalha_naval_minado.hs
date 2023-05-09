@@ -7,6 +7,10 @@ import Data.List
 import System.Random
 import Data.Function
 import Data.Maybe (fromJust)
+import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
+
+
+---------- DEPENDÊNCIAS ----------
 
 {--
     Símbolos:
@@ -16,9 +20,6 @@ import Data.Maybe (fromJust)
     "^" -> Bomba Bônus 
 --}
 
-
-import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
-
 -- definição dos tipos de dados
 type Jogadores = [Jogador]
 type Nome = String
@@ -27,6 +28,7 @@ type Vez = Int
 type Tabuleiro = [[Char]]
 data Jogador = Jogador Nome Pontuacao
                     deriving (Show, Read)
+
 
 -- função que inicia o programa
 main :: IO ()
@@ -50,7 +52,9 @@ main = do
             else
               ioError erro
 
+
 ---------- INTRODUÇÃO E HISTORIA ----------
+
 
 -- Função que apresenta uma introdução ao jogo e chama o menu
 inicio_apresentacao :: [Jogador] -> IO()
@@ -61,6 +65,7 @@ inicio_apresentacao dados = do
                   menu dados;
                   return()
 
+
 -- função que irá imprimir a introdução do jogo
 imprimiIntroducao :: IO ()
 imprimiIntroducao = do
@@ -69,7 +74,8 @@ imprimiIntroducao = do
                       handle <- openFile "./text/introducao.txt" ReadMode
                       imprimiTextoLentamente handle
                       hClose handle
-                  
+
+                
 -- função que irá imprimir a historia do jogo
 imprimiHistoria :: IO Jogadores
 imprimiHistoria = do
@@ -79,6 +85,7 @@ imprimiHistoria = do
                       imprimiTextoLentamente handle
                       hClose handle
                       return [] -- retorna uma lista vazia de jogadores
+
 
 -- função para imprimir lentamente a introdução do jogo
 imprimiTextoLentamente :: Handle -> IO ()
@@ -93,7 +100,9 @@ imprimiTextoLentamenteAux (x:xs) = do
   Control.Concurrent.threadDelay 50000
   imprimiTextoLentamenteAux xs
 
+
 ---------- MENU ----------
+
 
 -- função que exibe o Menu
 menu :: Jogadores -> IO Jogadores
@@ -141,6 +150,7 @@ executarOpcao dados _ = do
                           getChar
                           menu dados
 
+
 -- função responsável pelo cadastro de jogadores
 cadastrarJogador :: Jogadores -> IO Jogadores
 cadastrarJogador dados = do
@@ -162,12 +172,14 @@ cadastrarJogador dados = do
                               getChar
                               menu ((Jogador nome 0):dados)
 
+
 -- função que recebe uma string e retorna uma IO String
 getString :: String -> IO String
 getString str = do
                   putStr str
                   res <- getLine
                   return res
+
 
 -- função que prepara o segundo menu do jogo
 prepararJogo :: Jogadores -> Int -> IO Jogadores
@@ -183,6 +195,7 @@ prepararJogo dados tamTabuleiro = do
                       getChar
                       executarOpcaoJogo dados op tamTabuleiro
 
+
 -- função para manipular a opção escolhida pelo usuário do segundo menu
 executarOpcaoJogo :: Jogadores -> Char -> Int -> IO Jogadores
 executarOpcaoJogo dados '0' tamTabuleiro = menu dados
@@ -195,6 +208,7 @@ executarOpcaoJogo dados '3' tamTabuleiro = do
                   putStr "\n→ Opção: \n\n"
                   op <- readLn :: IO Int
                   prepararJogo dados op
+
 
 -- executa um loop do jogo
 doWhile :: Bool -> Jogadores -> Int -> IO Jogadores
@@ -230,6 +244,7 @@ doWhile condition dados tamTabuleiro
                   else doWhile False dadosAtualizado tamTabuleiro
   | otherwise = menu dados
 
+
 -- Define um nome para um jogador
 chamaJogador :: Jogadores -> String -> String -> IO String
 chamaJogador dados nomeJogador jogadorNum = do
@@ -243,7 +258,6 @@ chamaJogador dados nomeJogador jogadorNum = do
   putStr "\n→ Opção: \n\n"
   op <- getChar
   getChar
-
 
   if(op == 'S') then do
     putStrLn "\nDigite o nome do primeiro jogador: \n"
@@ -265,6 +279,7 @@ chamaJogador dados nomeJogador jogadorNum = do
     threadDelay 1000000
     return "JogadorNaoExiste"
 
+
 -- função que verifica se um jogador existe (o nome do jogador é único)
 existeJogador :: Jogadores -> String -> Bool
 existeJogador [] _ = False
@@ -272,17 +287,21 @@ existeJogador ((Jogador nomeCadastrado pontuacao):xs) nome
                 | (nomeCadastrado == nome) = True
                 | otherwise = existeJogador xs nome
 
+
 ---------- TABULEIRO ----------
+
 
 -- função para criar a matriz com um tamanho determinado pelo usuário ou com tamanho 10 caso o usuário não redefina o tamanho do tabuleiro
 criaMatriz :: Int -> IO [[Char]]
 criaMatriz n = return $ replicate n (intercalate " " (replicate (n) "~"))
+
 
 -- função para criar a matriz do bot com um tamanho determinado pelo usuário ou com tamanho 10 caso o usuário não redefina o tamanho do tabuleiro
 criaMatrizBot :: Int -> IO [[Char]]
 criaMatrizBot n = do
                   tabuleiro_Bot <- return $ replicate n (intercalate " " (replicate (n) "~"))
                   adicionaNavioNoBot tabuleiro_Bot (round (fromIntegral n / 2)) n
+
 
 -- função que vai permitir ao usuario posicionar seus navios
 montaTabuleiroJogador :: [[Char]] -> Int -> Int -> String -> IO [[Char]]
@@ -325,11 +344,16 @@ montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador = do
                           threadDelay 1000000
                           montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador
 
+
 -- função para imprimir o tabuleiro
 printaTabuleiro :: [[Char]] -> Int -> String -> IO()
 printaTabuleiro tabuleiro tam msg = do
       putStrLn msg 
       imprimeTabuleiro tabuleiro tam
+
+
+---------- IMPLEMENTA TABULEIRO ----------
+
 
 -- função para pegar a orientação em que o usuário quer posicionar os navios
 pegaOrientacaoTabuleiro :: IO Char
@@ -343,6 +367,7 @@ pegaOrientacaoTabuleiro = do
         pegaOrientacaoTabuleiro
       else return ori
 
+
 -- função para pegar as posições do tabuleiro que o usuário digitar
 pegaValor :: Char -> Int -> IO Int
 pegaValor char tamTabuleiro = do 
@@ -353,6 +378,31 @@ pegaValor char tamTabuleiro = do
                     putStrLn ("O valor de " ++ [char] ++ " é invalido, insira um valor entre 1 e " ++ show tamTabuleiro ++ ".")
                     pegaValor char tamTabuleiro
                   else return (valor-1)
+
+
+-- função para imprimir no terminal o tabuleiro
+imprimeTabuleiro :: [[Char]] -> Int -> IO ()
+imprimeTabuleiro tabuleiro tamTabuleiro = do
+    putStr "     "
+    if (tamTabuleiro < 10) then mapM_ (\i -> putStr $ show i ++ "   ") [1..tamTabuleiro]
+    else do
+      mapM_ (\i -> putStr $ show i ++ "   ") [1..9]
+      if (tamTabuleiro > 9) then mapM_ (\i -> putStr $ show i ++ "  ") [10..tamTabuleiro]
+      else putStr ""
+    putStr "\n"
+    imprimeLinhas tabuleiro 1 tamTabuleiro
+
+
+-- função que imprimi linha no terminal
+imprimeLinhas :: [[Char]] -> Int -> Int -> IO ()
+imprimeLinhas [] _ _ = return ()
+imprimeLinhas (h:t) numLinha tamTabuleiro = do
+    putStr (if numLinha < 10 then " " ++ show numLinha else show numLinha)
+    putStr " "
+    mapM_ (\x -> if x == 'X' then putStr "  X " else if x == '*' then putStr "  * " else if x == '#' then putStr "  # " else if x == bomba then putStr (" " ++ [bomba] ++ " ") else if x == redemoinho then putStr (" " ++ [redemoinho] ++ " ") else putStr "  ~ ") (take tamTabuleiro h)
+    putStr "\n"
+    imprimeLinhas t (numLinha + 1) tamTabuleiro
+
 
 -- função que adiciona os navios para o bot
 adicionaNavioNoBot :: [String] -> Int -> Int -> IO [String]
@@ -381,6 +431,7 @@ adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro = do
                     else
                       adicionaNavioNoBot tabuleiro tamNavio tamTabuleiro
 
+
 adicionaNavio :: [[Char]] -> Int -> Int -> Int -> IO [[Char]]
 adicionaNavio tabuleiro posI posJ tamNavio = return (adicionaNavioNaLinha tabuleiro tamNavio posI posJ)
 
@@ -393,6 +444,7 @@ adicionaNavioNaLinha (h:t) tamNavio posI posJ
     | null t = [h]
     | otherwise = h : adicionaNavioNaLinha t tamNavio (posI - 1) posJ
 
+
 -- função que verifica se há navio na coordenada
 verificaTemNavioNaLinha :: [[Char]] -> Int -> Int -> Int -> Bool
 verificaTemNavioNaLinha tabuleiro posI posJ tamNavio =
@@ -402,29 +454,71 @@ verificaTemNavioNaLinha tabuleiro posI posJ tamNavio =
 temNavio :: [Char] -> Bool
 temNavio tab = '#' `elem` tab
 
--- função para imprimir no terminal o tabuleiro
-imprimeTabuleiro :: [[Char]] -> Int -> IO ()
-imprimeTabuleiro tabuleiro tamTabuleiro = do
-    putStr "     "
-    if (tamTabuleiro < 10) then mapM_ (\i -> putStr $ show i ++ "   ") [1..tamTabuleiro]
-    else do
-      mapM_ (\i -> putStr $ show i ++ "   ") [1..9]
-      if (tamTabuleiro > 9) then mapM_ (\i -> putStr $ show i ++ "  ") [10..tamTabuleiro]
-      else putStr ""
-    putStr "\n"
-    imprimeLinhas tabuleiro 1 tamTabuleiro
+
+-- função que gera bombas aleatoriamente no tabuleiro
+jogaBombas :: [[Char]] -> Int -> Int -> IO [[Char]]
+jogaBombas tab 0 tamTabuleiro = return tab
+jogaBombas tab qtdBombas tamTabuleiro = do
+  posI <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
+  posJ <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
+    
+  if (verificaPosicaoValida tab posI posJ) then do
+    tab_Final <- return (adicionaBomba tab posI posJ bomba)
+    jogaBombas tab_Final (qtdBombas-1) tamTabuleiro
+  else do 
+    jogaBombas tab qtdBombas tamTabuleiro
 
 
-imprimeLinhas :: [[Char]] -> Int -> Int -> IO ()
-imprimeLinhas [] _ _ = return ()
-imprimeLinhas (h:t) numLinha tamTabuleiro = do
-    putStr (if numLinha < 10 then " " ++ show numLinha else show numLinha)
-    putStr " "
-    mapM_ (\x -> if x == 'X' then putStr "  X " else if x == '*' then putStr "  * " else if x == '#' then putStr "  # " else if x == bomba then putStr (" " ++ [bomba] ++ " ") else if x == redemoinho then putStr (" " ++ [redemoinho] ++ " ") else putStr "  ~ ") (take tamTabuleiro h)
-    putStr "\n"
-    imprimeLinhas t (numLinha + 1) tamTabuleiro
+-- função que adiciona bomba no tabuleiro
+adicionaBomba :: [[Char]] -> Int -> Int -> Char -> [[Char]]
+adicionaBomba (h:t) valorX valorY simbolo
+    | valorX == 0 && t == [] = [concat [take valorY h, [simbolo], drop (valorY + 1) h]]
+    | valorX == 0 = (take valorY h ++ [simbolo] ++ drop (valorY + 1) h) : t
+    | null t = [h]
+    | otherwise = h : adicionaBomba t (valorX - 1) valorY simbolo
+
+
+-- função que verifica se há determinado elemento na coordenada
+verificaTemElemento :: [[Char]] -> Int -> Int -> Bool
+verificaTemElemento tabuleiro posI posJ = ((tabuleiro !! posI !! posJ) `elem` ['X', '*', bomba, '#', redemoinho])
+
+
+-- função que verifica se a coordenada é livre
+verificaPosicaoValida :: [[Char]] -> Int -> Int -> Bool
+verificaPosicaoValida tab posI posJ = 
+ (posI < length tab &&
+ posJ < length tab &&
+ not (verificaTemElemento tab posI posJ) &&
+ not (temBombaAdjacente tab posI posJ))
+
+
+-- função que trata os arredores da coordenada para posicionar uma bomba
+temBombaAdjacente :: [[Char]] -> Int -> Int -> Bool
+temBombaAdjacente tab posI posJ =
+  (((posI-1) >= 0 && verificaTemElemento tab (posI-1) posJ)) || -- verifica a posição de cima
+  (((posJ-1) >= 0 && verificaTemElemento tab posI (posJ-1))) || -- verifica a posição da esquerda
+  ((posI+1) < length tab && verificaTemElemento tab (posI+1) posJ) || -- verifica a posição de baixo
+  (((posJ+1) < length (head tab) && verificaTemElemento tab posI (posJ+1)))
+
+
+-- função que posiciona bomba powerUp no tabuleiro
+jogaBombasBonus :: [[Char]] -> Int -> Int -> IO [[Char]]
+jogaBombasBonus tab 0 tamTabuleiro = return tab
+jogaBombasBonus tab qtdBombas tamTabuleiro = do
+  posI <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
+  posJ <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
+      
+  putStrLn (show posI ++ " " ++ show posJ)
+
+  if (verificaPosicaoValida tab posI posJ) then do
+    tab_Final <- return (adicionaBomba tab posI posJ redemoinho)
+    jogaBombasBonus tab_Final (qtdBombas-1) tamTabuleiro
+  else do 
+    jogaBombasBonus tab qtdBombas tamTabuleiro
+
 
 ---------- JOGO ----------
+
 
 -- função responsavel por iniciar a partida com o bot
 iniciaJogoComMaquina :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> String -> Jogadores -> IO Jogadores
@@ -452,31 +546,9 @@ iniciaJogoComMaquina tabJogador tabJogo tabBot tabBotJogo tamTabuleiro nomeJogad
               (tabJogador_2, tabJogo_2, tabBot_2, tabBotJogo_2) <- disparaNoTabuleiroJogador tabJogador2 tabJogo2 tabBot_2 tabBotJogo_2 tamTabuleiro
 
               iniciaJogoComMaquina tabJogador_2 tabJogo_2 tabBot_2 tabBotJogo_2 tamTabuleiro nomeJogador dados
-  
--- função que atualiza a pontuação do vencedor
--- recebe a lista (Jogadores), o nome do vencedor e retorna uma nova lista atualizada
-atualizaPontos :: Jogadores -> String -> Jogadores
-atualizaPontos [] _ = []
-atualizaPontos ((Jogador nome pontuacao):xs) vencedor
-                | (nome == vencedor) = [(Jogador nome (pontuacao + 1))] ++ xs
-                | otherwise = (Jogador nome pontuacao):(atualizaPontos xs vencedor)
 
 
-atualizaPontuacao :: Jogadores -> String -> IO Jogadores
-atualizaPontuacao dados nomeJogador = do 
-              -- abre o arquivo para escrita para atualizá-lo
-              arq_escrita <- openFile "./text/dados.txt" WriteMode
-              hPutStrLn arq_escrita (show (atualizaPontos dados nomeJogador))
-              hClose arq_escrita
-
-              -- abre o arquivo para leitura
-              arq_leitura <- openFile "./text/dados.txt" ReadMode
-              dados_atualizados <- hGetLine arq_leitura
-              hClose arq_leitura
-
-              return (read dados_atualizados)
-
-
+-- função de "ataque" no tabuleiro (bot)
 disparaNoTabuleiroBot :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]], [[Char]], [[Char]])
 disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro = do
     putStrLn ("Escolha as posições de X (de 1 a " ++ show tamTabuleiro ++ ") e as posições Y (de 1 a " ++ show tamTabuleiro ++ ")")
@@ -527,6 +599,8 @@ disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro =
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
       return (tabBot, tabBotJogoFinal, tabJogador, tabJogadorJogo)
 
+
+-- função de busca no tabuleiro
 procuraNaMatriz :: Char -> [[Char]] -> (Int, Int)
 procuraNaMatriz c mat = case findIndex (elem c) mat of
     Nothing -> (-1, -1)
@@ -534,6 +608,8 @@ procuraNaMatriz c mat = case findIndex (elem c) mat of
         Nothing -> (-1, -1)
         Just j -> (i, j)
 
+
+-- função de "ataque" no tabuleiro (jogadores)
 disparaNoTabuleiroJogador :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]], [[Char]], [[Char]])
 disparaNoTabuleiroJogador tabJogador tabJogo tabBot tabBotJogo tamTabuleiro = do
     valorX <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
@@ -577,6 +653,7 @@ disparaNoTabuleiroJogador tabJogador tabJogo tabBot tabBotJogo tamTabuleiro = do
       let tabJogoFinal = disparaEmNavio tabJogo valorX valorY simbolo
       return (tabJogador, tabJogoFinal, tabBot, tabBotJogo)
 
+
 -- função para ataques em navios
 disparaEmNavio :: [[Char]] -> Int -> Int -> Char -> [[Char]]
 disparaEmNavio (h:t) valorX valorY simbolo
@@ -585,31 +662,13 @@ disparaEmNavio (h:t) valorX valorY simbolo
     | null t = [h]
     | otherwise = h : disparaEmNavio t (valorX - 1) valorY simbolo
 
+
 -- função para contagem de navios no tabuleiro
 contaNavios :: [[Char]] -> Int -> Int
 contaNavios tabuleiro tamTabuleiro =
     let navios = [verificaTemNavioNaLinha tabuleiro x y 1 | x <- [0..(tamTabuleiro-1)], y <- [0..(tamTabuleiro-1)]]
     in length (filter not navios)
 
-
--- exibir ranking dos jogadores
-exibirRanking :: Jogadores -> IO ()
-exibirRanking [] = return ()
-exibirRanking (x:xs) = do
-                            putStrLn ((obterNome x) ++ " possui " ++ (show (obterPontuacao x)) ++ " pontos")
-                            exibirRanking xs
-  
--- função que recebe um jogador e retorna o nome
-obterNome :: Jogador -> Nome
-obterNome (Jogador nome _) = nome
-
--- função que recebe um jogador e retorna a pontuação
-obterPontuacao :: Jogador -> Pontuacao
-obterPontuacao (Jogador _ pontuacao) = pontuacao
-
--- função que define o critério de ordenação
-ordenar :: Jogadores -> Jogadores
-ordenar dados = sortBy (compare `on` obterPontuacao) dados
 
 -- executa um loop do jogo
 doWhileJogoCom2 :: Bool -> Jogadores -> Int -> IO Jogadores
@@ -649,6 +708,7 @@ doWhileJogoCom2 condition dados tamTabuleiro
                   else doWhileJogoCom2 False dadosAtualizado tamTabuleiro
   | otherwise = menu dados
 
+
 -- função para iniciar partida com outro jogador
 iniciaJogoComJogadores :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> String -> String-> Jogadores -> IO Jogadores
 iniciaJogoComJogadores tabJogador1 tabJogo1 tabJogador2 tabJogo2 tamTabuleiro nomeJogador1 nomeJogador2 dados = do
@@ -685,58 +745,57 @@ iniciaJogoComJogadores tabJogador1 tabJogo1 tabJogador2 tabJogo2 tamTabuleiro no
              iniciaJogoComJogadores tabJogador1 tabJogo1 tabJogador2 tabJogo2 tamTabuleiro nomeJogador1 nomeJogador2 dados
 
 
--- função que gera bombas aleatoriamente no tabuleiro
-jogaBombas :: [[Char]] -> Int -> Int -> IO [[Char]]
-jogaBombas tab 0 tamTabuleiro = return tab
-jogaBombas tab qtdBombas tamTabuleiro = do
-  posI <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
-  posJ <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
-    
-  if (verificaPosicaoValida tab posI posJ) then do
-    tab_Final <- return (adicionaBomba tab posI posJ bomba)
-    jogaBombas tab_Final (qtdBombas-1) tamTabuleiro
-  else do 
-    jogaBombas tab qtdBombas tamTabuleiro
-
-adicionaBomba :: [[Char]] -> Int -> Int -> Char -> [[Char]]
-adicionaBomba (h:t) valorX valorY simbolo
-    | valorX == 0 && t == [] = [concat [take valorY h, [simbolo], drop (valorY + 1) h]]
-    | valorX == 0 = (take valorY h ++ [simbolo] ++ drop (valorY + 1) h) : t
-    | null t = [h]
-    | otherwise = h : adicionaBomba t (valorX - 1) valorY simbolo
-
-verificaTemElemento :: [[Char]] -> Int -> Int -> Bool
-verificaTemElemento tabuleiro posI posJ = ((tabuleiro !! posI !! posJ) `elem` ['X', '*', bomba, '#', redemoinho])
-
-verificaPosicaoValida :: [[Char]] -> Int -> Int -> Bool
-verificaPosicaoValida tab posI posJ = 
- (posI < length tab &&
- posJ < length tab &&
- not (verificaTemElemento tab posI posJ) &&
- not (temBombaAdjacente tab posI posJ))
+---------- PONTUAÇÃO ----------
 
 
-temBombaAdjacente :: [[Char]] -> Int -> Int -> Bool
-temBombaAdjacente tab posI posJ =
-  (((posI-1) >= 0 && verificaTemElemento tab (posI-1) posJ)) || -- verifica a posição de cima
-  (((posJ-1) >= 0 && verificaTemElemento tab posI (posJ-1))) || -- verifica a posição da esquerda
-  ((posI+1) < length tab && verificaTemElemento tab (posI+1) posJ) || -- verifica a posição de baixo
-  (((posJ+1) < length (head tab) && verificaTemElemento tab posI (posJ+1)))
+-- exibir ranking dos jogadores
+exibirRanking :: Jogadores -> IO ()
+exibirRanking [] = return ()
+exibirRanking (x:xs) = do
+                            putStrLn ((obterNome x) ++ " possui " ++ (show (obterPontuacao x)) ++ " pontos")
+                            exibirRanking xs
+  
+
+-- função que recebe um jogador e retorna o nome
+obterNome :: Jogador -> Nome
+obterNome (Jogador nome _) = nome
 
 
-jogaBombasBonus :: [[Char]] -> Int -> Int -> IO [[Char]]
-jogaBombasBonus tab 0 tamTabuleiro = return tab
-jogaBombasBonus tab qtdBombas tamTabuleiro = do
-  posI <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
-  posJ <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
-      
-  putStrLn (show posI ++ " " ++ show posJ)
+-- função que recebe um jogador e retorna a pontuação
+obterPontuacao :: Jogador -> Pontuacao
+obterPontuacao (Jogador _ pontuacao) = pontuacao
 
-  if (verificaPosicaoValida tab posI posJ) then do
-    tab_Final <- return (adicionaBomba tab posI posJ redemoinho)
-    jogaBombasBonus tab_Final (qtdBombas-1) tamTabuleiro
-  else do 
-    jogaBombasBonus tab qtdBombas tamTabuleiro
+
+-- função que define o critério de ordenação
+ordenar :: Jogadores -> Jogadores
+ordenar dados = sortBy (compare `on` obterPontuacao) dados
+
+
+-- função que atualiza a pontuação do vencedor
+-- recebe a lista (Jogadores), o nome do vencedor e retorna uma nova lista atualizada
+atualizaPontos :: Jogadores -> String -> Jogadores
+atualizaPontos [] _ = []
+atualizaPontos ((Jogador nome pontuacao):xs) vencedor
+                | (nome == vencedor) = [(Jogador nome (pontuacao + 1))] ++ xs
+                | otherwise = (Jogador nome pontuacao):(atualizaPontos xs vencedor)
+
+
+atualizaPontuacao :: Jogadores -> String -> IO Jogadores
+atualizaPontuacao dados nomeJogador = do 
+              -- abre o arquivo para escrita para atualizá-lo
+              arq_escrita <- openFile "./text/dados.txt" WriteMode
+              hPutStrLn arq_escrita (show (atualizaPontos dados nomeJogador))
+              hClose arq_escrita
+
+              -- abre o arquivo para leitura
+              arq_leitura <- openFile "./text/dados.txt" ReadMode
+              dados_atualizados <- hGetLine arq_leitura
+              hClose arq_leitura
+
+              return (read dados_atualizados)
+
+
+---------- CARACTERES ----------
 
 
 bomba :: Char
