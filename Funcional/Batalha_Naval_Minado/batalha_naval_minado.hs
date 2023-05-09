@@ -305,9 +305,11 @@ montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador = do
                             montaTabuleiroJogador novoTab (tamNavio-1) tamTabuleiro nomeJogador
                           else do
                             putStrLn "Já tem um navio nesta posicao, insira outro valor novamente."
+                            threadDelay 1000000
                             montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador
                         else do
                           putStrLn "O tamanho do navio esta fora dos limites, escolha outra posicao"
+                          threadDelay 1000000
                           montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador
                       else do
                         if ((valorX + tamNavio - 1) < tamTabuleiro) then
@@ -316,9 +318,11 @@ montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador = do
                             montaTabuleiroJogador novoTab (tamNavio-1) tamTabuleiro nomeJogador
                           else do
                             putStrLn "Já tem um navio nesta posicao, insira outro valor novamente."
+                            threadDelay 1000000
                             montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador
                         else do
                           putStrLn "O tamanho do navio esta fora dos limites, escolha outra posicao"
+                          threadDelay 1000000
                           montaTabuleiroJogador tabuleiro tamNavio tamTabuleiro nomeJogador
 
 -- função para imprimir o tabuleiro
@@ -346,7 +350,7 @@ pegaValor char tamTabuleiro = do
                   valor <- readLn :: IO Int
 
                   if((valor-1) < 0 || (valor-1) >= tamTabuleiro) then do
-                    putStrLn ("O valor de " ++ [char] ++ " é invalido, insira um valor entre 0 e 9.")
+                    putStrLn ("O valor de " ++ [char] ++ " é invalido, insira um valor entre 1 e " ++ show tamTabuleiro ++ ".")
                     pegaValor char tamTabuleiro
                   else return (valor-1)
 
@@ -425,7 +429,7 @@ imprimeLinhas (h:t) numLinha tamTabuleiro = do
 -- função responsavel por iniciar a partida com o bot
 iniciaJogoComMaquina :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> String -> Jogadores -> IO Jogadores
 iniciaJogoComMaquina tabJogador tabJogo tabBot tabBotJogo tamTabuleiro nomeJogador dados = do
-          -- system "clear"
+           system "clear"
            
            printaTabuleiro tabJogo tamTabuleiro ("Tabuleiro de " ++ nomeJogador ++ ":\n")
            printaTabuleiro tabBotJogo tamTabuleiro "Tabuleiro do Bot:\n"
@@ -475,7 +479,7 @@ atualizaPontuacao dados nomeJogador = do
 
 disparaNoTabuleiroBot :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]], [[Char]], [[Char]])
 disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro = do
-    putStrLn ("Escolha as posições de X (de 0 a " ++ show tamTabuleiro ++ ") e as posições Y (de 0 a " ++ show tamTabuleiro ++ ")")
+    putStrLn ("Escolha as posições de X (de 1 a " ++ show tamTabuleiro ++ ") e as posições Y (de 1 a " ++ show tamTabuleiro ++ ")")
     valorX <- pegaValor 'X' tamTabuleiro
     valorY <- pegaValor 'Y' tamTabuleiro
 
@@ -484,12 +488,14 @@ disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro =
       disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro
     else if((tabBot !! valorX !! valorY) == '#') then do
       putStrLn "Voce acertou um navio!"
+      threadDelay 1000000
       let simbolo = 'X'
       let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
       return (tabBotFinal, tabBotJogoFinal, tabJogador, tabJogadorJogo)
     else if((tabBot !! valorX !! valorY) == bomba) then do
       putStrLn "Voce acertou uma bomba!"
+      threadDelay 1000000
       let simbolo = 'X'
       let (posI, posJ) = procuraNaMatriz '#' tabJogador
 
@@ -503,6 +509,7 @@ disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro =
     
     else if((tabBot !! valorX !! valorY) == redemoinho) then do
       putStrLn "Voce acertou uma bomba bonus!"
+      threadDelay 1000000
       let simbolo = 'X'
 
       let (posI, posJ) = procuraNaMatriz '#' tabBot
@@ -515,6 +522,7 @@ disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro =
       return (tabBotFinal, tabBotJogoFinal, tabJogador, tabJogadorJogo)
     else do
       putStrLn "Voce acertou na água!"
+      threadDelay 1000000
       let simbolo = '*'
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
       return (tabBot, tabBotJogoFinal, tabJogador, tabJogadorJogo)
@@ -681,12 +689,9 @@ iniciaJogoComJogadores tabJogador1 tabJogo1 tabJogador2 tabJogo2 tamTabuleiro no
 jogaBombas :: [[Char]] -> Int -> Int -> IO [[Char]]
 jogaBombas tab 0 tamTabuleiro = return tab
 jogaBombas tab qtdBombas tamTabuleiro = do
-  putStrLn "Espalhando bombas ..."
   posI <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
   posJ <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
-      
-  putStrLn (show posI ++ " " ++ show posJ)
-
+    
   if (verificaPosicaoValida tab posI posJ) then do
     tab_Final <- return (adicionaBomba tab posI posJ bomba)
     jogaBombas tab_Final (qtdBombas-1) tamTabuleiro
@@ -722,7 +727,6 @@ temBombaAdjacente tab posI posJ =
 jogaBombasBonus :: [[Char]] -> Int -> Int -> IO [[Char]]
 jogaBombasBonus tab 0 tamTabuleiro = return tab
 jogaBombasBonus tab qtdBombas tamTabuleiro = do
-  putStrLn "Espalhando bombas bônus..."
   posI <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
   posJ <- randomRIO (0, fromIntegral (tamTabuleiro - 1))
       
