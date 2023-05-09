@@ -1,4 +1,4 @@
-## Batalha Naval Minado
+# Batalha Naval Minado
 
 <p> Batalha Naval Minado é um jogo de estratégia onde o jogador deve encontrar e destruir todos os navios do oponente enquanto tenta evitar as minas escondidas no tabuleiro.
 
@@ -8,7 +8,19 @@ O jogo oferece diversas funcionalidades, tais como a possibilidade de personaliz
 
 ## Como Jogar 
 
->(Em construção)
+Para executar o jogo você deve ter instalado em sua máquina o compilador de Haskell [GHC](https://www.haskell.org/ghc/) (Glasgow Haskell Compiler). Além disso, também é necessário fazer o **fork** do repositório em sua máquina.
+
+#### Como Executar
+
+1. No diretório do jogo, execute:
+
+>ghc batalha_naval_minado.hs
+
+2. Com o executável disponível, digite:
+
+>./batalha_naval_minado
+
+
 
 ## Desenvolvedores
 
