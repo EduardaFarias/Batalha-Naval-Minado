@@ -407,7 +407,7 @@ imprimeLinhas [] _ _ = return ()
 imprimeLinhas (h:t) numLinha tamTabuleiro = do
     putStr (if numLinha < 10 then " " ++ show numLinha else show numLinha)
     putStr " "
-    mapM_ (\x -> if x == 'X' then putStr "  X " else if x == '*' then putStr "  * " else if x == '#' then putStr "  # " else if x == 'o' then putStr "  o " else if x == '^' then putStr "  ^ " else putStr "  ~ ") (take tamTabuleiro h)
+    mapM_ (\x -> if x == 'X' then putStr "  X " else if x == '*' then putStr "  * " else if x == '#' then putStr "  # " else if x == bomba then putStr (" " ++ [bomba] ++ " ") else if x == '^' then putStr "  ^ " else putStr "  ~ ") (take tamTabuleiro h)
     putStr "\n"
     imprimeLinhas t (numLinha + 1) tamTabuleiro
 
@@ -466,11 +466,11 @@ atualizaPontuacao dados nomeJogador = do
 
 disparaNoTabuleiroBot :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> Int -> IO ([[Char]], [[Char]], [[Char]], [[Char]])
 disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro = do
-    putStrLn "Escolha as posições de X (de 0 a 9) e as posições Y (de 0 a 9)"
+    putStrLn ("Escolha as posições de X (de 0 a " ++ show tamTabuleiro ++ ") e as posições Y (de 0 a " ++ show tamTabuleiro ++ ")")
     valorX <- pegaValor 'X' tamTabuleiro
     valorY <- pegaValor 'Y' tamTabuleiro
 
-    if((tabBotJogo !! valorX !! valorY) `elem` ['X', '*', 'o', '^']) then do
+    if((tabBotJogo !! valorX !! valorY) `elem` ['X', '*', bomba, '^']) then do
       putStrLn "Voce já disparou nesta posição. Escolha uma outra posicao."
       disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro
     else if((tabBot !! valorX !! valorY) == '#') then do
@@ -479,7 +479,7 @@ disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro =
       let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo
       return (tabBotFinal, tabBotJogoFinal, tabJogador, tabJogadorJogo)
-    else if((tabBot !! valorX !! valorY) == 'o') then do
+    else if((tabBot !! valorX !! valorY) == bomba) then do
       putStrLn "Voce acertou uma bomba!"
       let simbolo = 'X'
       let (posI, posJ) = procuraNaMatriz '#' tabJogador
@@ -487,7 +487,7 @@ disparaNoTabuleiroBot tabBot tabBotJogo tabJogador tabJogadorJogo tamTabuleiro =
       let tabJogadorFinal = disparaEmNavio tabJogador posI posJ simbolo
       let tabJogadorJogoFinal = disparaEmNavio tabJogadorJogo posI posJ simbolo
 
-      let simbolo2 = 'o'
+      let simbolo2 = bomba
       let tabBotFinal = disparaEmNavio tabBot valorX valorY simbolo2
       let tabBotJogoFinal = disparaEmNavio tabBotJogo valorX valorY simbolo2
       return (tabBotFinal, tabBotJogoFinal, tabJogadorFinal, tabJogadorJogoFinal)
@@ -524,21 +524,21 @@ disparaNoTabuleiroJogador tabJogador tabJogo tabBot tabBotJogo tamTabuleiro = do
 
     putStrLn ("O valor de x e y é : "++ show valorX ++ " " ++ show valorY)
 
-    if(tabJogo !! valorX !! valorY `elem` ['X', '*', 'o', '^']) then do
+    if(tabJogo !! valorX !! valorY `elem` ['X', '*', bomba, '^']) then do
       disparaNoTabuleiroJogador tabJogador tabJogo tabBot tabBotJogo tamTabuleiro
     else if(tabJogador !! valorX !! valorY == '#') then do
         let simbolo = 'X'
         let tabJogadorFinal = disparaEmNavio tabJogador valorX valorY simbolo
         let tabJogoFinal = disparaEmNavio tabJogo valorX valorY simbolo
         return (tabJogadorFinal, tabJogoFinal, tabBot, tabBotJogo)
-    else if((tabJogador !! valorX !! valorY) == 'o') then do
+    else if((tabJogador !! valorX !! valorY) == bomba) then do
       let simbolo = 'X'
       let (posI, posJ) = procuraNaMatriz '#' tabBot
 
       let tabBotFinal = disparaEmNavio tabBot posI posJ simbolo
       let tabBotJogoFinal = disparaEmNavio tabBotJogo posI posJ simbolo
 
-      let simbolo2 = 'o'
+      let simbolo2 = bomba
       let tabJogadorFinal = disparaEmNavio tabJogador valorX valorY simbolo2
       let tabJogadorJogoFinal = disparaEmNavio tabJogo valorX valorY simbolo2
       return (tabJogadorFinal, tabJogadorJogoFinal, tabBotFinal, tabBotJogoFinal)
@@ -679,7 +679,7 @@ jogaBombas tab qtdBombas tamTabuleiro = do
   putStrLn (show posI ++ " " ++ show posJ)
 
   if (verificaPosicaoValida tab posI posJ) then do
-    tab_Final <- return (adicionaBomba tab posI posJ 'o')
+    tab_Final <- return (adicionaBomba tab posI posJ bomba)
     jogaBombas tab_Final (qtdBombas-1) tamTabuleiro
   else do 
     jogaBombas tab qtdBombas tamTabuleiro
@@ -692,7 +692,7 @@ adicionaBomba (h:t) valorX valorY simbolo
     | otherwise = h : adicionaBomba t (valorX - 1) valorY simbolo
 
 verificaTemElemento :: [[Char]] -> Int -> Int -> Bool
-verificaTemElemento tabuleiro posI posJ = ((tabuleiro !! posI !! posJ) `elem` ['X', '*', 'o', '#', '^'])
+verificaTemElemento tabuleiro posI posJ = ((tabuleiro !! posI !! posJ) `elem` ['X', '*', bomba, '#', '^'])
 
 verificaPosicaoValida :: [[Char]] -> Int -> Int -> Bool
 verificaPosicaoValida tab posI posJ = 
@@ -726,3 +726,5 @@ jogaBombasBonus tab qtdBombas tamTabuleiro = do
     jogaBombasBonus tab qtdBombas tamTabuleiro
 
 
+bomba :: Char
+bomba = '\x1f4a3' -- caracter unicode de uma bomba: 💣
