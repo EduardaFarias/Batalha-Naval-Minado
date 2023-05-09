@@ -8,6 +8,14 @@ import System.Random
 import Data.Function
 import Data.Maybe (fromJust)
 
+{--
+    Símbolos:
+    "~" -> Água
+    "#" -> Navio
+    "o" -> Bomba 
+    "^" -> Bomba Bônus 
+--}
+
 
 import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
 
