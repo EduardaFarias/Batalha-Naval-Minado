@@ -14,7 +14,7 @@ Para executar o jogo você deve ter instalado em sua máquina o compilador de Ha
 
 1. No diretório do jogo, execute:
 
->ghc batalha_naval_minado.hs
+>ghc --make batalha_naval_minado.hs
 
 2. Com o executável disponível, digite:
 
