@@ -6,7 +6,7 @@ O jogo oferece diversas funcionalidades, tais como a possibilidade de personaliz
 
 - [Documentação](https://docs.google.com/document/d/1ea-AV-QI9XDrPBfTsM2Qdy2xajnzhF1-gGaIO84EY0Y/edit?usp=sharing)
   
-- [Vídeo Demo](https://github.com/EduardaFarias/Batalha-Naval-Minado)
+- [Vídeo Demo](https://www.youtube.com/watch?v=TCQt47z1lgI)
 
 ## Como Jogar 🎮
 
