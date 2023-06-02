@@ -46,4 +46,4 @@ ghc --make batalha_naval_minado.hs
 
 <br>
 
-> Linguagens: Haskell e Prolog
+> Linguagens: Haskell
